@@ -1,5 +1,6 @@
 package qe.entity.settings;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -28,7 +29,7 @@ public class Settings {
 	private String artefactsDir;
 	private String pre1Support;
 	
-	private static final String PATH_TO_SETTINGS = System.getProperty("user.home") + "/settings-bqt.properties";
+	private static final String PATH_TO_SETTINGS = System.getProperty("user.home") + File.separator + "bqt" + File.separator + "settings-bqt.properties";
 
 	private static final String PROP_PATH_TO_TEST_RESULTS = "path_to_test_results";
 	private static final String PROP_PATH_TO_TEST_REPOSITORY = "path_to_test_repository";
@@ -54,6 +55,10 @@ public class Settings {
 	public static Settings getInstance() {
 		if (settings == null) {
 			settings = new Settings();
+			File dir = new File(PATH_TO_SETTINGS).getParentFile();
+			if(!dir.exists()){
+				dir.mkdirs();
+			}
 		}
 		return settings;
 	}
