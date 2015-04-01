@@ -27,8 +27,9 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 import qe.entity.result.QueryFailure;
@@ -48,7 +49,7 @@ import qe.utils.Utils;
  *
  */
 public class PanelDetails extends TabbedPanel {
-	private static final Logger logger = Logger.getLogger(PanelDetails.class);
+	private static final Logger logger = LoggerFactory.getLogger(PanelDetails.class);
 	private ScrollableTable tableErrorList;
 	private JTextArea textAreaExpectedRest;
 	private JTextArea textAreaActualRes;

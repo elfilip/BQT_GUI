@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import qe.entity.settings.Settings;
 import qe.exception.ResultParsingException;
@@ -21,7 +22,7 @@ import qe.exception.ResultParsingException;
  *
  */
 public class FileLoader {
-	private static final Logger logger = Logger.getLogger(FileLoader.class);
+	private static final Logger logger = LoggerFactory.getLogger(FileLoader.class);
 	
 	/**
 	 * Loads file into string

@@ -13,7 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import qe.entity.settings.Settings;
 
@@ -24,7 +25,7 @@ import qe.entity.settings.Settings;
  *
  */
 public class PanelSettings extends TabbedPanel {
-	private static final Logger logger = Logger.getLogger(PanelSettings.class);
+	private static final Logger logger = LoggerFactory.getLogger(PanelSettings.class);
 
 	private JTextField textField;
 	private JTextField repositorySettingsTextfield;

@@ -4,7 +4,8 @@ import java.awt.Frame;
 import java.io.File;
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import qe.entity.settings.Settings;
 import qe.exception.GUIException;
@@ -22,7 +23,7 @@ public class ResultGetter {
 	private HashMap<String, TestResult> results;
 	private final String COMPARE_ERRORS = "errors_for_COMPARE";
 	private String currentTest = null;
-	private static final Logger logger = Logger.getLogger(ResultGetter.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResultGetter.class);
 
 	public ResultGetter(Frame frame) {
 

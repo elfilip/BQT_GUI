@@ -15,8 +15,9 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import qe.entity.result.ResultGetter;
 import qe.entity.result.TestResult;
@@ -28,7 +29,7 @@ import qe.utils.Utils;
  *
  */
 public class PanelResults extends TabbedPanel {
-	private static final Logger logger = Logger.getLogger(ResultsGUI.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResultsGUI.class);
 	private JTable table;
 	private ResultGetter results;
 	private PanelDetails panel_details;

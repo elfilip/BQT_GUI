@@ -6,13 +6,16 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import qe.entity.result.ResultGetter;
 import qe.entity.settings.Settings;
 import qe.log.appender.GUIAppender;
+import qe.panels.GUIRunnerPanel;
+import qe.panels.SettingsPanel;
 
 /**
  * 
@@ -22,12 +25,13 @@ import qe.log.appender.GUIAppender;
  */
 public class ResultsGUI {
 
-	private static final Logger logger = Logger.getLogger(ResultsGUI.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResultsGUI.class);
 
 	private JFrame frmBqtTestParser;
 	private JTabbedPane tabbedPane;
 	private ResultGetter results = new ResultGetter(frmBqtTestParser);
-	private JTextArea log;
+	private GUIRunnerPanel guiPanel;
+	private JTextPane log;
 
 	/**
 	 * Launch the application.
@@ -56,6 +60,7 @@ public class ResultsGUI {
 	/**
 	 * Initializes the contents of the frame and loads components
 	 */
+	@SuppressWarnings("serial")
 	private void initialize() {
 		// Load configuration file if exists, otherwise crates empty
 		// configuration file
@@ -63,23 +68,26 @@ public class ResultsGUI {
 		Settings.getInstance().loadSettings();
 
 		// main window of the GUI
-		frmBqtTestParser = new JFrame();
+		frmBqtTestParser = new JFrame(){
+			@Override
+			public void dispose() {
+				if(guiPanel.couldDispose()){
+					super.dispose();
+				}
+			}
+		};
 		frmBqtTestParser.setTitle("BQT Test Parser");
-		frmBqtTestParser.setBounds(100, 100, 682, 449);
-		frmBqtTestParser.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//		frmBqtTestParser.setBounds(100, 100, 682, 449);
+		frmBqtTestParser.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 		// Container for panels with test results and settings
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
-		log = new JTextArea();
-		log.setEditable(false);
+		log = GUIAppender.getTextPane("ALL_GUI");
 
-		GUIAppender.setArea(log);
-		JScrollPane logpane = new JScrollPane();
-
-		logpane.getViewport().add(log);
-
+		JScrollPane logpane = new JScrollPane(log);
+		
 		JSplitPane splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, logpane);
 		splitpane.setOneTouchExpandable(true);
 		splitpane.setDividerSize(15);
@@ -90,13 +98,21 @@ public class ResultsGUI {
 
 		PanelDetails details = new PanelDetails(results);
 		PanelResults totalResults = new PanelResults(results, details);
-		PanelSettings settings = new PanelSettings();
+//		PanelSettings settings = new PanelSettings();
+		guiPanel = new GUIRunnerPanel();
+		JScrollPane bqtPane = new JScrollPane(guiPanel);
+		JScrollPane settingsPane = new JScrollPane(new SettingsPanel());
+		
 		tabbedPane.addTab("Total Results", null, totalResults.getPanel(), null);
 		tabbedPane.addTab("Results Details", null, details.getPanel(), null);
-		tabbedPane.addTab("Settings", null, settings.getPanel(), null);
-		settings.initialize();
+		tabbedPane.addTab("BQT Runner", null, bqtPane, null);
+		tabbedPane.addTab("Settings", null, settingsPane, null);
+//		tabbedPane.addTab("Settings", null, settings.getPanel(), null);
+//		settings.initialize();
 		totalResults.initialize();
 		details.initialize();
+		frmBqtTestParser.pack();
+		frmBqtTestParser.setLocationRelativeTo(null);
 		logger.info("Application has been initialized.");
 
 	}

@@ -5,14 +5,14 @@ import java.awt.BorderLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 
 import qe.entity.result.QueryFailure;
 import qe.log.appender.GUIAppender;
 
 public class LoggingFrame {
 
-	private JTextArea textArea;
+	private JTextPane textArea;
 
 	public LoggingFrame( ) {
 		frame = new JFrame();
@@ -30,9 +30,8 @@ public class LoggingFrame {
 		panel.setLayout(new BorderLayout(0, 0));
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane);
-		textArea = new JTextArea();
+		textArea = GUIAppender.getTextPane("ALL_GUI");
 		scrollPane.setViewportView(textArea);
-		GUIAppender.setArea(textArea);
 		return this;
 	}
 	
