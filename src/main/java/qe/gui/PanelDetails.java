@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.Map.Entry;
 
+import javax.swing.BoundedRangeModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -23,6 +24,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.MutableComboBoxModel;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -348,6 +351,40 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaExpectedRest = new JTextArea();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
+		bindScrollPanes(paneActualResult, paneExpectedResult);
+	}
+	
+	private void bindScrollPanes(final JScrollPane... panes){
+	    if(panes == null || panes.length == 0){
+	        return;
+	    }
+	    for(JScrollPane pane : panes){
+	        // vertical model
+	        final BoundedRangeModel verticalModel = pane.getVerticalScrollBar().getModel();
+	        verticalModel.addChangeListener(new ChangeListener() {
+                
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    int value = verticalModel.getValue();
+                    for(JScrollPane p : panes){
+                        p.getVerticalScrollBar().setValue(value);
+                    }
+                }
+            });
+            // horizontal model
+            final BoundedRangeModel horizontalModel = pane.getHorizontalScrollBar().getModel();
+            horizontalModel.addChangeListener(new ChangeListener() {
+                
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    int value = horizontalModel.getValue();
+                    for(JScrollPane p : panes){
+                        p.getHorizontalScrollBar().setValue(value);
+                    }
+                }
+            });
+
+	    }
 	}
 
 	/**
