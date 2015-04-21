@@ -40,6 +40,7 @@ import qe.entity.result.ResultGetter;
 import qe.entity.result.TestResult;
 import qe.exception.GUIException;
 import qe.exception.ResultParsingException;
+import qe.panels.TablePanel;
 import qe.parsing.dom.DomParserExpectedRes;
 import qe.parsing.dom.DomParserFailure;
 import qe.utils.FileLoader;
@@ -56,6 +57,8 @@ public class PanelDetails extends TabbedPanel {
 	private ScrollableTable tableErrorList;
 	private JTextArea textAreaExpectedRest;
 	private JTextArea textAreaActualRes;
+	private TablePanel tableExpectedResult;
+    private TablePanel tableActualResult;
 	private JScrollPane paneErrorsList;
 	private JTextField txtQueryName;
 	private JTextField txtErrorErrorError;
@@ -114,6 +117,11 @@ public class PanelDetails extends TabbedPanel {
 							textAreaExpectedRest.setText(f.getExpectedResult());
 							txtQueryName.setText(f.getQueryName());
 							txtErrorErrorError.setText(f.getCompareErrors().get(0));
+						    //tables
+						    tableActualResult.parseXML(f.getActualResult());
+						    tableExpectedResult.parseXML(f.getExpectedResult());
+						    tableActualResult.markDiff(tableExpectedResult);
+						    tableExpectedResult.markDiff(tableActualResult);
 							logger.debug("Details loaded for query " + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
 						}
 					}
@@ -319,9 +327,8 @@ public class PanelDetails extends TabbedPanel {
 		gbc_paneErrorsList.gridheight = 10;
 		panel.add(paneErrorsList, gbc_paneErrorsList);
 		paneErrorsList.setViewportView(tableErrorList);
-
 		// Text area for actual result
-		JScrollPane paneActualResult = new JScrollPane();
+		final JScrollPane paneActualResult = new JScrollPane();
 		GridBagConstraints gbc_paneActualResult = new GridBagConstraints();
 		gbc_paneActualResult.insets = new Insets(0, 0, 0, 5);
 		gbc_paneActualResult.fill = GridBagConstraints.BOTH;
@@ -337,7 +344,7 @@ public class PanelDetails extends TabbedPanel {
 		paneActualResult.setViewportView(textAreaActualRes);
 
 		// Text area for expected results
-		JScrollPane paneExpectedResult = new JScrollPane();
+		final JScrollPane paneExpectedResult = new JScrollPane();
 		GridBagConstraints gbc_paneExpectedResult = new GridBagConstraints();
 		gbc_paneExpectedResult.insets = new Insets(0, 0, 0, 5);
 		gbc_paneExpectedResult.fill = GridBagConstraints.BOTH;
@@ -351,7 +358,46 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaExpectedRest = new JTextArea();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
+		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
+		
+        tableExpectedResult = new TablePanel();
+        tableActualResult = new TablePanel();
+        
+        final JButton shoAsTable = new JButton("Show as table");
+        shoAsTable.addActionListener(new ActionListener() {
+            boolean isXml = true;
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(isXml){
+        	        paneExpectedResult.setViewportView(tableExpectedResult);
+        	        paneActualResult.setViewportView(tableActualResult);
+        	        shoAsTable.setText("Show as XML");
+        	        isXml = false;
+                } else {
+                    paneExpectedResult.setViewportView(textAreaExpectedRest);
+                    paneActualResult.setViewportView(textAreaActualRes);
+                    shoAsTable.setText("Show as table");
+                    isXml = true;
+                }
+            }
+        });
+		GridBagConstraints gbc_showAsTable = new GridBagConstraints();
+        gbc_showAsTable.insets = new Insets(0, 0, 5, 5);
+        gbc_showAsTable.gridx = 4;
+        gbc_showAsTable.gridy = 2;
+        gbc_showAsTable.anchor = GridBagConstraints.EAST;
+        panel.add(shoAsTable, gbc_showAsTable);
+	}
+	
+	private void setVerticalAndHorizontalUnitIncrement(int vert, int hor, JScrollPane... panes){
+	    if(panes == null){
+	        return;
+	    }
+	    for(JScrollPane pane : panes){
+	        pane.getVerticalScrollBar().setUnitIncrement(vert);
+	        pane.getHorizontalScrollBar().setUnitIncrement(hor);
+	    }
 	}
 	
 	private void bindScrollPanes(final JScrollPane... panes){
