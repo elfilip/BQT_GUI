@@ -121,7 +121,6 @@ public class PanelDetails extends TabbedPanel {
 						    tableActualResult.parseXML(f.getActualResult());
 						    tableExpectedResult.parseXML(f.getExpectedResult());
 						    tableActualResult.markDiff(tableExpectedResult);
-						    tableExpectedResult.markDiff(tableActualResult);
 							logger.debug("Details loaded for query " + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
 						}
 					}

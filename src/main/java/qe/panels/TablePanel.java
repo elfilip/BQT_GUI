@@ -1,8 +1,5 @@
 package qe.panels;
 
-
-import java.awt.Color;
-
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.GroupLayout.Group;
@@ -20,6 +17,12 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+/**
+ * Panel for basic table view.
+ * 
+ * @author jdurani
+ *
+ */
 public class TablePanel extends JPanel {
     /**
      * 
@@ -30,7 +33,13 @@ public class TablePanel extends JPanel {
     
     private DocumentBuilderFactory DOC_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     
-    private static interface Elements{
+    /**
+     * XML elements in error file.
+     * 
+     * @author jdurani
+     *
+     */
+    private static interface Elements {
         static final String ACTUAL_EXCEPTION = "actualException";
         static final String ACTUAL_QUERY_RESULTS = "actualQueryResults";
         static final String EXPECTED_EXCEPTION = "expectedException";
@@ -47,19 +56,32 @@ public class TablePanel extends JPanel {
         static final String MESSAGE = "message";
     }
     
-    private static final int TYPE_TABLE = 0; 
+    /**
+     * Table panel shows a table. 
+     */
+    private static final int TYPE_TABLE = 0;
+    /**
+     * Table panel shows an exception.
+     */
     private static final int TYPE_EXCEPTION = 1; 
     
+    /**
+     * Type of this table. Can be one of {@link #TYPE_TABLE}, {@link #TYPE_EXCEPTION}
+     */
     private int type = -1;
     
+    /**
+     * Table.
+     */
     private Cell[][] table;
     private int rows;
     private int columns;
     
-    public TablePanel() {
-        super();
-    }
-    
+    /**
+     * This method parses an XML document {@code xml} and creates table.
+     * 
+     * @param xml XML document as string
+     */
     public void parseXML(String xml){
         this.removeAll();
         try{
@@ -113,6 +135,9 @@ public class TablePanel extends JPanel {
         }
     }
     
+    /**
+     * Prepares this panel (creates layout from actual {@link #table}).
+     */
     private void initTable(){
         GroupLayout gl = new GroupLayout(this);
         gl.setAutoCreateContainerGaps(false);
@@ -145,6 +170,9 @@ public class TablePanel extends JPanel {
         setLayout(gl);
     }
     
+    /**
+     * @return all {@link #table} as one-dimensional array
+     */
     private Cell[] getAllTableAsArray(){
         Cell[] cells = new Cell[rows * columns];
         for(int r = 0; r < rows; r++){
@@ -153,6 +181,10 @@ public class TablePanel extends JPanel {
         return cells;
     }
     
+    /**
+     * @param colIdx column index
+     * @return column in actual {@link #table} as one-dimensional array
+     */
     private Cell[] getTableColumnAsArray(int colIdx){
         Cell[] cells = new Cell[rows];
         for(int r = 0; r < rows; r++){
@@ -161,6 +193,11 @@ public class TablePanel extends JPanel {
         return cells;
     }
     
+    /**
+     * Fills {@link #table}. Expects that document contains a table-result.
+     * @param doc an XML document
+     * @throws SAXException if the document {@code doc} does not have expected form
+     */
     private void buildTable(Document doc) throws SAXException{
         NodeList tableNodeList = doc.getElementsByTagName(Elements.TABLE);
         if(tableNodeList.getLength() == 0){
@@ -210,6 +247,11 @@ public class TablePanel extends JPanel {
         }
     }
     
+    /**
+     * Fills {@link #table}. Expects that document contains an exception-result.
+     * @param doc an XML document
+     * @throws SAXException if the document {@code doc} does not have expected form
+     */
     private void buildException(Document doc) throws SAXException{
         NodeList exceptionTypeList = doc.getElementsByTagName(Elements.EXCEPTION_TYPE);
         NodeList exceptionMessageList = doc.getElementsByTagName(Elements.MESSAGE);
@@ -230,6 +272,12 @@ public class TablePanel extends JPanel {
         table[1][1] = new Cell(exceptionMessage.getTextContent(), true);
     }
     
+    /**
+     * Compares {@code table} with this table. All different cells will be highlighted in
+     * in both tables.
+     * 
+     * @param table second table
+     */
     public void markDiff(TablePanel table){
         if(table == null || table.type != this.type){
             return;
@@ -246,21 +294,32 @@ public class TablePanel extends JPanel {
         }
     }
     
+    /**
+     * Compares two cells and highlights them if they are different.  
+     * 
+     * @param c1 cell one
+     * @param c2 cell two
+     * @param ignoreCase if true, strings will be compared using {@link String#equalsIgnoreCase(String)} 
+     *      instead of {@link String#equals(String)}
+     */
     private void compareCells(Cell c1, Cell c2, boolean ignoreCase){
         if(c1 == c2){
             return;
         }
         boolean equals = c1 != null ? c1.equals(c2, ignoreCase) : c2.equals(c1, ignoreCase);
         if(!equals){
-            if(c1 != null){
-                c1.setBackground(Color.GRAY);
-            }
-            if(c2 != null){
-                c2.setBackground(Color.GRAY);
-            }
+            if(c1 != null){ c1.highlight(); }
+            if(c2 != null){ c2.highlight(); }
         }
     }
     
+    /**
+     * @param table table
+     * @param row row index
+     * @param col column index
+     * @return cell instance at position {@code [row][col]} in table {@code table}
+     *      or null if {@code row} or {@code col} is out of range 
+     */
     private Cell getCell(TablePanel table, int row, int col){
         if(row < 0 || row >= table.rows || col < 0 || col >= table.columns){
             return null;
