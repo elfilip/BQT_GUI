@@ -1,7 +1,8 @@
 package qe.panels;
 
 import java.awt.Color;
-import java.math.BigDecimal;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -18,24 +19,37 @@ public class Cell extends JPanel {
     private static final long serialVersionUID = -409413476746932759L;
     
     /**
+     * Basic background color.
+     */
+    private static final Color BASIC_BACKGROUND = Color.WHITE;
+    /**
+     * Highlighted background color.
+     */
+    private static final Color HIGHLIGHTED_BACKGROUND = Color.CYAN;
+    
+    /**
      * Text this cell contains.
      */
     private String text;
+    
     /**
-     * If this cell is editable or not.
+     * If this cell is highlighted or not (its background color is {@link #HIGHLIGHTED_BACKGROUND}
      */
-    private boolean editable;
+    private boolean isHighlighted;
+    
+    /**
+     * Binded cell.
+     */
+    private Cell bindedCell;
     
     /**
      * Creates new cell.
      * 
      * @param text text for this cell
-     * @param editable if this cell should be editable or not
      */
-    public Cell(String text, boolean editable){
+    public Cell(String text){
         super();
         this.text = text;
-        this.editable = editable;
         init();
     }
     
@@ -45,47 +59,44 @@ public class Cell extends JPanel {
     private void init(){
         setBorder(new EtchedBorder(EtchedBorder.LOWERED));
         add(new JLabel(text));
+        setBackground(BASIC_BACKGROUND);
+        isHighlighted = false;
+        
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                highlight();
+            }
+        });
     }
     
     /**
-     * Determines if this cell contains same text as another cell. Number are compared as number.
-     * Method uses {@link String#trim()} method befor comparing numbers (for now, there is no
-     * explicit declaration of type of texts - text, number, ...).
+     * Sets binded cell for this cell.
      * 
-     * @param c another cell
-     * @param ignoreCase true if strings should be compared by {@link String#equalsIgnoreCase(String)}
-     * @return true if this cell contains same text as cell {@code c}
+     * @param c binded cell
      */
-    public boolean equals(Cell c, boolean ignoreCase){
-        if(c == null){
-            return false;
-        }
-        if(this.text == null){
-            return c.text == null;
-        }
-        try{
-            BigDecimal bdThis = new BigDecimal(this.text.trim());
-            BigDecimal bdC = new BigDecimal(c.text.trim());
-            return bdThis.compareTo(bdC) == 0;
-        } catch (NumberFormatException ex){
-            // ignore; next code will handle it
-        } catch (NullPointerException ex){
-            // in case c.text == null
-            return false;
-        }
-        return ignoreCase ? this.text.equalsIgnoreCase(c.text) : this.text.equals(c.text);
-    }
-    
-    @Override
-    public void setBackground(Color bg) {
-        super.setBackground(bg);
+    public void setBindedCell(Cell c){
+        bindedCell = c;
     }
     
     /**
-     * Highlights this cell.
+     * Highlights this cell and binded cell (if not {@code null}).
      */
     public void highlight(){
-        setBackground(Color.GRAY);
+        innerHighlight(true);
+    }
+    
+    private void innerHighlight(boolean highlightBindedCell){
+        if(isHighlighted){
+            setBackground(BASIC_BACKGROUND);
+            isHighlighted = false;
+        } else {
+            setBackground(HIGHLIGHTED_BACKGROUND);
+            isHighlighted = true;
+        }
+        if(highlightBindedCell && bindedCell != null){
+            bindedCell.innerHighlight(false);
+        }
     }
 }
 

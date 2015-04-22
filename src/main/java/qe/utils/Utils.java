@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.ToolTipManager;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -64,6 +66,17 @@ public class Utils {
 	    transformer.transform(new DOMSource(doc), 
 	         new StreamResult(new OutputStreamWriter(out, "UTF-8")));
 	}
+	
+	/**
+	 * Sets tool tip text for the component.
+	 * 
+	 * @param component the component
+	 * @param text text to be set
+	 */
+	public static final void setToolTipText(JComponent component, String text){
+        component.setToolTipText(text);
+        ToolTipManager.sharedInstance().registerComponent(component);
+    }
 	
 	/**
 	 * Shows message dialog and writes into log

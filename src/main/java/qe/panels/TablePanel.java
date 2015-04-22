@@ -15,7 +15,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+
+import qe.exception.ResultParsingException;
 
 /**
  * Panel for basic table view.
@@ -198,10 +199,10 @@ public class TablePanel extends JPanel {
      * @param doc an XML document
      * @throws SAXException if the document {@code doc} does not have expected form
      */
-    private void buildTable(Document doc) throws SAXException{
+    private void buildTable(Document doc) throws ResultParsingException{
         NodeList tableNodeList = doc.getElementsByTagName(Elements.TABLE);
         if(tableNodeList.getLength() == 0){
-            throw new SAXException("Expected element not found: " + Elements.TABLE);
+            throw new ResultParsingException("Expected element not found: " + Elements.TABLE);
         }
         Node tableElement = tableNodeList.item(0);
         // create table
@@ -211,15 +212,15 @@ public class TablePanel extends JPanel {
         columns = Integer.parseInt(colsC) + 1;
         rows = Integer.parseInt(rowsC) + 1;
         table = new Cell[rows][columns];
-        table[0][0] = new Cell("Row", false);
+        table[0][0] = new Cell("Row");
         // fill header
         NodeList selectNodeList = doc.getElementsByTagName(Elements.SELECT);
         if(selectNodeList.getLength() == 0){
-            throw new SAXException("Expected element not found: " + Elements.SELECT);
+            throw new ResultParsingException("Expected element not found: " + Elements.SELECT);
         }
         NodeList dataElementList= doc.getElementsByTagName(Elements.DATA_ELEMENT);
         if(dataElementList.getLength() == 0){
-            throw new SAXException("No element " + Elements.DATA_ELEMENT + ".");
+            throw new ResultParsingException("No element " + Elements.DATA_ELEMENT + ".");
         }
         int idx = 0;
         while(idx < dataElementList.getLength()){
@@ -229,7 +230,7 @@ public class TablePanel extends JPanel {
             attrs = dataElement.getAttributes();
             b.append(attrs.getNamedItem(Elements.TYPE).getNodeValue())
                 .append("]");
-            table[0][++idx] = new Cell(b.toString(), false);
+            table[0][++idx] = new Cell(b.toString());
             dataElement = dataElement.getNextSibling();
         }
         // fill rows
@@ -238,11 +239,11 @@ public class TablePanel extends JPanel {
         int rowIdx = 0;
         int cellIdxOverall = 0;
         while(rowIdx < tableRowElementList.getLength()){
-            table[++rowIdx][0] = new Cell(Integer.toString(rowIdx), false);
+            table[++rowIdx][0] = new Cell(Integer.toString(rowIdx));
             int cellIdx = 1;
             while(cellIdx < columns){
                 Node tableCellElement = tableCellElementList.item(cellIdxOverall++);
-                table[rowIdx][cellIdx++] = new Cell(tableCellElement.getTextContent(), true);
+                table[rowIdx][cellIdx++] = new Cell(tableCellElement.getTextContent());
             }
         }
     }
@@ -252,67 +253,47 @@ public class TablePanel extends JPanel {
      * @param doc an XML document
      * @throws SAXException if the document {@code doc} does not have expected form
      */
-    private void buildException(Document doc) throws SAXException{
+    private void buildException(Document doc) throws ResultParsingException{
         NodeList exceptionTypeList = doc.getElementsByTagName(Elements.EXCEPTION_TYPE);
         NodeList exceptionMessageList = doc.getElementsByTagName(Elements.MESSAGE);
         if(exceptionTypeList.getLength() == 0){
-            throw new SAXException("No element " + Elements.EXCEPTION_TYPE);
+            throw new ResultParsingException("No element " + Elements.EXCEPTION_TYPE);
         }
         if(exceptionMessageList.getLength() == 0){
-            throw new SAXException("No element " + Elements.MESSAGE);
+            throw new ResultParsingException("No element " + Elements.MESSAGE);
         }
         Node exceptionType = exceptionTypeList.item(0);
         Node exceptionMessage= exceptionMessageList.item(0);
         rows = 2;
         columns = 2;
         table = new Cell[rows][columns];
-        table[0][0] = new Cell("Exception type", false);
-        table[0][1] = new Cell(exceptionType.getTextContent(), true);
-        table[1][0] = new Cell("Exception message", false);
-        table[1][1] = new Cell(exceptionMessage.getTextContent(), true);
+        table[0][0] = new Cell("Exception type");
+        table[0][1] = new Cell(exceptionType.getTextContent());
+        table[1][0] = new Cell("Exception message");
+        table[1][1] = new Cell(exceptionMessage.getTextContent());
     }
     
     /**
-     * Compares {@code table} with this table. All different cells will be highlighted in
-     * in both tables.
+     * Binds cells in {@code table} with cells in this table. If the cell in one
+     * table is highlighted, then corresponding cell in the other table is 
+     * highlighted too.
      * 
      * @param table second table
      */
-    public void markDiff(TablePanel table){
+    public void bindCells(TablePanel table){
         if(table == null || table.type != this.type){
             return;
         }
-        // header
-        for(int c = 0; c < this.columns; c++){
-            compareCells(this.table[0][c], getCell(table, 0, c), true);
-        }
-        // rows
-        for(int r = 1; r < this.rows; r++){
+        for(int r = 0; r < this.rows; r++){
             for(int c = 0; c < this.columns; c++){
-                compareCells(this.table[r][c], getCell(table, r, c), false);
+                Cell cell1 = this.table[r][c];
+                Cell cell2 = getCell(table, r, c);
+                if(cell1 != null){ cell1.setBindedCell(cell2); }
+                if(cell2 != null){ cell2.setBindedCell(cell1); }
             }
         }
     }
-    
-    /**
-     * Compares two cells and highlights them if they are different.  
-     * 
-     * @param c1 cell one
-     * @param c2 cell two
-     * @param ignoreCase if true, strings will be compared using {@link String#equalsIgnoreCase(String)} 
-     *      instead of {@link String#equals(String)}
-     */
-    private void compareCells(Cell c1, Cell c2, boolean ignoreCase){
-        if(c1 == c2){
-            return;
-        }
-        boolean equals = c1 != null ? c1.equals(c2, ignoreCase) : c2.equals(c1, ignoreCase);
-        if(!equals){
-            if(c1 != null){ c1.highlight(); }
-            if(c2 != null){ c2.highlight(); }
-        }
-    }
-    
+        
     /**
      * @param table table
      * @param row row index

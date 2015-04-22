@@ -1,21 +1,23 @@
 package qe.panels;
 
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.io.File;
 
+import javax.swing.ButtonGroup;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.ToolTipManager;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -23,10 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qe.entity.settings.Settings;
+import qe.utils.Utils;
 
 public class SettingsPanel extends JPanel{
 
-	private static final long serialVersionUID = -1288130454294139419L;
+    private static final String TEIID_TEST_ARTIFACTS = "teiid-test-artifacts";
+    private static final String TEIID_TEST_ARTIFACTS_V6 = "teiid-test-artifacts-v6";
+
+    private static final long serialVersionUID = -1288130454294139419L;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SettingsPanel.class);
 	
@@ -43,6 +49,9 @@ public class SettingsPanel extends JPanel{
 	private final SaveToSettingsFileAction saveIncludeAction = new SaveInclude();
 	private final SaveToSettingsFileAction saveExcludeAction = new SaveExclude();
 	private final SaveToSettingsFileAction savePre1SupportAction = new SavePre1Support();
+	private final SaveToSettingsFileAction saveTeiidV6ArtifactsSelectedAction = new SaveTeiidTestArtifactsSelection(TEIID_TEST_ARTIFACTS_V6);
+	private final SaveToSettingsFileAction saveTeiidArtifactsSelectedAction = new SaveTeiidTestArtifactsSelection(TEIID_TEST_ARTIFACTS);
+	private final SaveToSettingsFileAction saveUseStandardArtifactsPathAction = new SaveUseStandardArtifactsPath();
 	
 	private JTextField summaryTotalsDir;
 	private JLabel summaryTotalsDirLabel;
@@ -50,6 +59,9 @@ public class SettingsPanel extends JPanel{
 	private JTextField repositorySettings;
 	private JLabel repositorySettingsLabel;
 	private JButton repositorySettingsBrowseButton;
+	
+	private JRadioButton teiidV6Artifacts;
+	private JRadioButton teiidArtifacts;
 	
 	private JTextField userName;
 	private JLabel userNameLabel;
@@ -69,6 +81,8 @@ public class SettingsPanel extends JPanel{
 	private JTextField config;
 	private JLabel configLabel;
 	private JButton configBrowseButton;
+	
+	private JCheckBox useStandardArtifactsPath;
 	private JTextField artifactsDir;
 	private JLabel artifactsDirLabel;
 	private JButton artifactsDirBrowseButton;
@@ -92,6 +106,8 @@ public class SettingsPanel extends JPanel{
 		initPre1Support();
 		initSummaryTotalsDir();
 		initRepositorySettings();
+		initArtifactsVersion();
+		initStandardArtifactsPath();
 		initDefaultValues();
 		
 		GroupLayout gl = new GroupLayout(this);
@@ -119,6 +135,9 @@ public class SettingsPanel extends JPanel{
 					.addComponent(repositorySettings)
 					.addComponent(repositorySettingsBrowseButton)))
 			.addGroup(gl.createParallelGroup()
+		        .addComponent(teiidV6Artifacts)
+		        .addComponent(teiidArtifacts))
+			.addGroup(gl.createParallelGroup()
 				.addComponent(summaryTotalsDirLabel)
 				.addGroup(gl.createSequentialGroup()
 					.addComponent(summaryTotalsDir)
@@ -138,12 +157,13 @@ public class SettingsPanel extends JPanel{
 					.addComponent(configLabel)
 					.addGroup(gl.createSequentialGroup()
 						.addComponent(config)
-						.addComponent(configBrowseButton)))
-				.addGroup(gl.createParallelGroup()
-					.addComponent(artifactsDirLabel)
-					.addGroup(gl.createSequentialGroup()
-						.addComponent(artifactsDir)
-						.addComponent(artifactsDirBrowseButton))))
+						.addComponent(configBrowseButton))))
+			.addComponent(useStandardArtifactsPath)
+			.addGroup(gl.createParallelGroup()
+				.addComponent(artifactsDirLabel)
+				.addGroup(gl.createSequentialGroup()
+					.addComponent(artifactsDir)
+					.addComponent(artifactsDirBrowseButton)))
 			.addGroup(gl.createParallelGroup()
 				.addComponent(includeLabel)
 				.addComponent(include)
@@ -171,6 +191,9 @@ public class SettingsPanel extends JPanel{
 				.addGroup(gl.createParallelGroup()
 					.addComponent(repositorySettings)
 					.addComponent(repositorySettingsBrowseButton))
+				.addComponent(teiidV6Artifacts)
+				.addComponent(teiidArtifacts)
+                .addGap(groupsGap)
 				.addComponent(summaryTotalsDirLabel)
 				.addGroup(gl.createParallelGroup()
 					.addComponent(summaryTotalsDir)
@@ -187,11 +210,13 @@ public class SettingsPanel extends JPanel{
 				.addComponent(configLabel)
 				.addGroup(gl.createParallelGroup()
 					.addComponent(config)
-					.addComponent(configBrowseButton))
-				.addComponent(artifactsDirLabel)
-				.addGroup(gl.createParallelGroup()
-					.addComponent(artifactsDir)
-					.addComponent(artifactsDirBrowseButton)))
+					.addComponent(configBrowseButton)))
+            .addGap(groupsGap)
+            .addComponent(useStandardArtifactsPath)
+			.addComponent(artifactsDirLabel)
+			.addGroup(gl.createParallelGroup()
+				.addComponent(artifactsDir)
+				.addComponent(artifactsDirBrowseButton))
 			.addGap(groupsGap)
 			.addGroup(gl.createSequentialGroup()
 				.addComponent(includeLabel)
@@ -219,10 +244,21 @@ public class SettingsPanel extends JPanel{
 		setText(scenarios, settings.getScenarioPath());
 		setText(outputDir, settings.getOutputDir());
 		setText(config, settings.getConfig());
-		setText(artifactsDir, settings.getArtefactsDir());
-		if(settings.getPre1Support() != null){
-			pre1Supported.setSelected(Boolean.parseBoolean(settings.getPre1Support()));
+		setText(artifactsDir, settings.getArtifactsDir());
+		pre1Supported.setSelected(Boolean.parseBoolean(settings.getPre1Support()));
+		String tta = settings.getTeiidTestArtifactsDir();
+		if(TEIID_TEST_ARTIFACTS_V6.equals(tta)){
+		    teiidV6Artifacts.setSelected(true);
+		} else if(TEIID_TEST_ARTIFACTS.equals(tta)){
+		    teiidArtifacts.setSelected(true);
 		}
+		if(settings.getUseStandardArtifactsPath() != null){
+		    useStandardArtifactsPath.setSelected(Boolean.parseBoolean(settings.getUseStandardArtifactsPath()));
+		}
+		boolean enabled = !useStandardArtifactsPath.isSelected(); 
+        artifactsDir.setEnabled(enabled);
+        artifactsDirBrowseButton.setEnabled(enabled);
+        artifactsDirLabel.setEnabled(enabled);
 	}
 	
 	private void setText(JTextField field, String text){
@@ -231,12 +267,21 @@ public class SettingsPanel extends JPanel{
 		}
 	}
 	
+	private void initArtifactsVersion(){
+	    teiidV6Artifacts = getRadioButton(TEIID_TEST_ARTIFACTS_V6, true, saveTeiidV6ArtifactsSelectedAction);
+	    teiidArtifacts = getRadioButton(TEIID_TEST_ARTIFACTS, false,  saveTeiidArtifactsSelectedAction);
+	    
+	    ButtonGroup bg = new ButtonGroup();
+	    bg.add(teiidArtifacts);
+	    bg.add(teiidV6Artifacts);
+	}
+	
 	private void initSummaryTotalsDir(){
 		// Label Path to test results:
 		summaryTotalsDirLabel = new JLabel("Path to test results:");
 		summaryTotalsDirLabel.setHorizontalAlignment(SwingConstants.LEFT);
 		summaryTotalsDir = getTextFiled(savePathToResultsAction);
-		setToolTipText(summaryTotalsDir, "The folder with Summary_totals.txt");
+		Utils.setToolTipText(summaryTotalsDir, "The folder with Summary_totals.txt");
 		summaryTotalsDir.setColumns(10);
 		
 		summaryTotalsDirBrowseButton = getBrowseButton(JFileChooser.DIRECTORIES_ONLY, summaryTotalsDir, savePathToResultsAction);
@@ -259,8 +304,8 @@ public class SettingsPanel extends JPanel{
 		include = getTextFiled(saveIncludeAction);
 		exclude = getTextFiled(saveExcludeAction);
 		
-		setToolTipText(include, "Include scenario pattern. Same as \"bqt.scenario.include\" property.");
-		setToolTipText(exclude, "Exclude scenario pattern. Same as \"bqt.scenario.exclude\" property.");
+		Utils.setToolTipText(include, "Include scenario pattern. Same as \"bqt.scenario.include\" property.");
+		Utils.setToolTipText(exclude, "Exclude scenario pattern. Same as \"bqt.scenario.exclude\" property.");
 		
 		includeLabel = new JLabel("Include scenarios");
 		excludeLabel = new JLabel("Exclude scenarios");
@@ -280,7 +325,30 @@ public class SettingsPanel extends JPanel{
 				savePre1SupportAction.save();
 			}
 		});
-		setToolTipText(pre1Supported, "If old names of BQT properties are supported. Same as \"support.pre1.0.scenario\" property.");
+		Utils.setToolTipText(pre1Supported, "If old names of BQT properties are supported. Same as \"support.pre1.0.scenario\" property.");
+	}
+	
+	private void initStandardArtifactsPath(){
+	    artifactsDir = getTextFiled(saveArtifactsDirAction);
+	    artifactsDirLabel = new JLabel("Artifacts directory");
+	    artifactsDirBrowseButton = getBrowseButton(JFileChooser.DIRECTORIES_ONLY, artifactsDir, saveArtifactsDirAction);
+	    Utils.setToolTipText(artifactsDir, "Path to queries and expected results. "
+	            + "Usually <dataservices-path>/<test-artifacts-dir>/ctc-tests/queries. Same as \"queryset.artifacts.dir\" property.");
+        
+	    useStandardArtifactsPath = new JCheckBox("Use standard path to artifacts.", true);
+	    Utils.setToolTipText(useStandardArtifactsPath, "If true, artifacts in dataservices repo will be used ("
+	            + "<dataservices-path>/<test-artifacts-dir>/ctc-tests/queries).");
+	    useStandardArtifactsPath.addActionListener(new ActionListener() {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveUseStandardArtifactsPathAction.save();
+                boolean enabled = !useStandardArtifactsPath.isSelected(); 
+                artifactsDir.setEnabled(enabled);
+                artifactsDirBrowseButton.setEnabled(enabled);
+                artifactsDirLabel.setEnabled(enabled);
+            }
+        });
 	}
 	
 	/**
@@ -299,15 +367,10 @@ public class SettingsPanel extends JPanel{
 		configLabel = new JLabel("Configuration file");
 		configBrowseButton = getBrowseButton(JFileChooser.FILES_ONLY, config, saveConfigAction);
 		
-		artifactsDir = getTextFiled(saveArtifactsDirAction);
-		artifactsDirLabel = new JLabel("Artifacts directory");
-		artifactsDirBrowseButton = getBrowseButton(JFileChooser.DIRECTORIES_ONLY, artifactsDir, saveArtifactsDirAction);
 		
-		setToolTipText(scenarios, "Path to scenario file. It could be a single file or a directory. Same as \"scenario.file\" property.");
-		setToolTipText(outputDir, "Path to output directory. Same as \"output.dir\" property.");
-		setToolTipText(config, "Path to default config file. Usually <bqt-distro-path>/config/test.properties. Same as \"config\" property.");
-		setToolTipText(artifactsDir, "Path to queries and expected results. "
-				+ "Usually <dataservices-path>/<test-artifacts-dir>/ctc-tests/queries. Same as \"queryset.artifacts.dir\" property.");
+		Utils.setToolTipText(scenarios, "Path to scenario file. It could be a single file or a directory. Same as \"scenario.file\" property.");
+		Utils.setToolTipText(outputDir, "Path to output directory. Same as \"output.dir\" property.");
+		Utils.setToolTipText(config, "Path to default config file. Usually <bqt-distro-path>/config/test.properties. Same as \"config\" property.");
 	}
 	
 	/**
@@ -327,6 +390,18 @@ public class SettingsPanel extends JPanel{
 		return button;
 	}
 	
+	private JRadioButton getRadioButton(String text, boolean isSelected, final SaveToSettingsFileAction sa){
+	    JRadioButton b = new JRadioButton(text, isSelected);
+	    b.addActionListener(new ActionListener() {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sa.save();
+            }
+        });
+	    return b;
+	}
+	
 	/**
 	 * Initializes connection-properties related part of this panel.
 	 */
@@ -341,15 +416,10 @@ public class SettingsPanel extends JPanel{
 		hostLabel = new JLabel("Host");
 		portLabel = new JLabel("Port");
 		
-		setToolTipText(userName, "User name for JDV server. Same as \"username\" property.");
-		setToolTipText(password, "Password for JDV server. Same as \"password\" property.");
-		setToolTipText(host, "Host name of JDV server. Same as \"host.name\" property.");
-		setToolTipText(port, "Port of JDV server. Same as \"host.port\" property.");
-	}
-	
-	private static void setToolTipText(JComponent component, String text){
-		component.setToolTipText(text);
-		ToolTipManager.sharedInstance().registerComponent(component);
+		Utils.setToolTipText(userName, "User name for JDV server. Same as \"username\" property.");
+		Utils.setToolTipText(password, "Password for JDV server. Same as \"password\" property.");
+		Utils.setToolTipText(host, "Host name of JDV server. Same as \"host.name\" property.");
+		Utils.setToolTipText(port, "Port of JDV server. Same as \"host.port\" property.");
 	}
 	
 	private static JTextField getTextFiled(final SaveToSettingsFileAction focusLostSaveAction){
@@ -391,7 +461,7 @@ public class SettingsPanel extends JPanel{
 			} else {
 				chooser.setCurrentDirectory(new File(textField.getText()));
 			}
-			if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
+			if(chooser.showOpenDialog(SwingUtilities.getWindowAncestor((Component)e.getSource())) == JFileChooser.APPROVE_OPTION){
 				textField.setText(chooser.getSelectedFile().getAbsolutePath());
 				saveAction.save();
 			}
@@ -405,7 +475,7 @@ public class SettingsPanel extends JPanel{
 	private class SaveArtifactsDir implements SaveToSettingsFileAction{
 		@Override
 		public void save() {
-			Settings.getInstance().setArtefactsDir(artifactsDir.getText());
+			Settings.getInstance().setArtifactsDir(artifactsDir.getText());
 			LOGGER.info("Artifacts dir is set to " + artifactsDir.getText());
 		}
 	}
@@ -499,10 +569,33 @@ public class SettingsPanel extends JPanel{
 	}
 	
 	private class SavePre1Support implements SaveToSettingsFileAction{
+	    @Override
+	    public void save() {
+	        Settings.getInstance().setPre1Support(Boolean.toString(pre1Supported.isSelected()));
+	        LOGGER.info("Old names support is set to " + pre1Supported.isSelected());
+	    }
+	}
+	
+	private class SaveTeiidTestArtifactsSelection implements SaveToSettingsFileAction{
+	    
+	    private final String dirname;
+	    
+	    public SaveTeiidTestArtifactsSelection(String dirname) {
+            this.dirname = dirname;
+        }
+	    
+	    @Override
+	    public void save() {
+	        Settings.getInstance().setTeiidTestArtifactsDir(dirname);
+	        LOGGER.info("Teiid-test-artifacts is set to " + dirname);
+	    }
+	}
+	
+	private class SaveUseStandardArtifactsPath implements SaveToSettingsFileAction{
 		@Override
 		public void save() {
-			Settings.getInstance().setPre1Support(Boolean.toString(pre1Supported.isSelected()));
-			LOGGER.info("Exclude scenario is set to " + pre1Supported.isSelected());
+			Settings.getInstance().setUseStandardArtifactsPath(Boolean.toString(useStandardArtifactsPath.isSelected()));
+			LOGGER.info("Use standard path is set to " + useStandardArtifactsPath.isSelected());
 		}
 	}
 }

@@ -120,17 +120,18 @@ public class PanelDetails extends TabbedPanel {
 						    //tables
 						    tableActualResult.parseXML(f.getActualResult());
 						    tableExpectedResult.parseXML(f.getExpectedResult());
-						    tableActualResult.markDiff(tableExpectedResult);
+						    tableActualResult.bindCells(tableExpectedResult);
 							logger.debug("Details loaded for query " + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
 						}
 					}
 				});
 
 		// Combobox for selecting test
-		class Aaa<String> extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
+		@SuppressWarnings("serial")
+        class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
 
 		}
-		comboBoxName = new JComboBox<String>(new Aaa<String>());
+		comboBoxName = new JComboBox<String>(new Aaa());
 		comboBoxName.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent arg0) {
 				if (arg0.getStateChange() == ItemEvent.SELECTED) {

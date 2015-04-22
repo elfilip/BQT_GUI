@@ -5,7 +5,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 /**
- * Abstract class for all members of tabbled pane
+ * Abstract class for all members of tabbed pane
  * @author felias
  *
  */

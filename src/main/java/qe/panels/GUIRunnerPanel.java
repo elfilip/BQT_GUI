@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -12,7 +13,6 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -21,7 +21,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.ToolTipManager;
 
 import org.apache.logging.log4j.Level;
 import org.jboss.bqt.client.TestClient;
@@ -136,15 +135,10 @@ public class GUIRunnerPanel extends JPanel {
 		setLayout(gl);
 	}
 	
-	private static final void setToolTipText(JComponent component, String text){
-		component.setToolTipText(text);
-		ToolTipManager.sharedInstance().registerComponent(component);
-	}
-	
 	private void initStatusLabel(){
 		status = new JLabel("NOT RUNNING");
 		status.setFont(new Font("Arial", Font.BOLD, 20));
-		setToolTipText(status, "BQT status");
+		Utils.setToolTipText(status, "BQT status");
 		statusLabel = new JLabel("Status: ");
 	}
 	
@@ -163,8 +157,8 @@ public class GUIRunnerPanel extends JPanel {
 		cancelButton = new JButton("Cancel");
 		cancelButton.addActionListener(new CancelBQTActionListener());
 		
-		setToolTipText(startButton, "Start BQT task.");
-		setToolTipText(cancelButton, "Cancel BQT task.");
+		Utils.setToolTipText(startButton, "Start BQT task.");
+		Utils.setToolTipText(cancelButton, "Cancel BQT task.");
 	}
 	
 	/**
@@ -179,7 +173,7 @@ public class GUIRunnerPanel extends JPanel {
 		
 		resultModes.setSelectedItem(BQTProperties.RESULT_MODE_COMPARE);
 		
-		setToolTipText(resultModes, "Result mode. Same as \"result.mode\" property.");
+		Utils.setToolTipText(resultModes, "Result mode. Same as \"result.mode\" property.");
 		
 		resultModesLabel = new JLabel("Result mode");
 	}
@@ -214,7 +208,7 @@ public class GUIRunnerPanel extends JPanel {
 	 * @return true, if actual job has been canceled, false otherwise
 	 */
 	public boolean cancelActualJob(boolean disposeLogFrame){
-		int result = JOptionPane.showConfirmDialog(null, "BQT is still running. Do you want to interrupt it?");
+		int result = JOptionPane.showConfirmDialog(getWindowAncestor(), "BQT is still running. Do you want to interrupt it?");
 		if(result == JOptionPane.YES_OPTION){
 			if(runningInstance != null){
 				runningInstance.cancel(true);
@@ -250,7 +244,7 @@ public class GUIRunnerPanel extends JPanel {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			if(runningInstance != null){
-				JOptionPane.showMessageDialog(null, "BQT already running!", "BQT running", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(getWindowAncestor(), "BQT already running!", "BQT running", JOptionPane.ERROR_MESSAGE);
 			} else {
 				runningInstance = new BQTRunner();
 				runningInstance.execute();
@@ -333,12 +327,27 @@ public class GUIRunnerPanel extends JPanel {
 			props.setProperty(BQTProperties.PASSWORD_PROP, settings.getPassword());
 			props.setProperty(BQTProperties.SCENARIO_FILE_PROP, settings.getScenarioPath());
 			props.setProperty(BQTProperties.RESULT_MODE_PROP, resultModes.getSelectedItem().toString());
-			props.setProperty(BQTProperties.QUERYSET_ARTIFACTS_DIR_PROP, settings.getArtefactsDir());
 			props.setProperty(BQTProperties.OUTPUT_DIR_PROP, settings.getOutputDir());
 			props.setProperty(BQTProperties.CONFIG_PROP, settings.getConfig());
 			props.setProperty(BQTProperties.SUPPORT_OLD_PROP_FORMAT_PROP, settings.getPre1Support());
 			props.setProperty(BQTProperties.INCLUDE_PROP, settings.getScenarioInclude());
 			props.setProperty(BQTProperties.EXCLUDE_PROP, settings.getScenarioExclude());
+			
+			
+			if(Boolean.parseBoolean(settings.getUseStandardArtifactsPath())){
+			    StringBuilder b = new StringBuilder(settings.getPathToRepository())
+			            .append(File.separator)
+			            .append(settings.getTeiidTestArtifactsDir())
+			            .append(File.separator)
+			            .append("ctc-tests")
+			            .append(File.separator)
+			            .append("queries");
+			    props.setProperty(BQTProperties.QUERYSET_ARTIFACTS_DIR_PROP, b.toString());
+			} else {
+			    props.setProperty(BQTProperties.QUERYSET_ARTIFACTS_DIR_PROP, settings.getArtifactsDir());
+			}
+			
+			
 			return props;
 		}
 	}
