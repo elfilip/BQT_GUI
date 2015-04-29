@@ -14,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import qe.entity.result.ResultGetter;
 import qe.entity.settings.Settings;
 import qe.log.appender.GUIAppender;
-import qe.panels.GUIRunnerPanel;
+import qe.panels.BQTRunnerPanel;
+import qe.panels.JenkinsPanel;
 import qe.panels.SettingsPanel;
+import qe.utils.Utils;
 
 /**
  * 
@@ -30,8 +32,7 @@ public class ResultsGUI {
 	private JFrame frmBqtTestParser;
 	private JTabbedPane tabbedPane;
 	private ResultGetter results = new ResultGetter(frmBqtTestParser);
-	private GUIRunnerPanel guiPanel;
-	private JTextPane log;
+	private BQTRunnerPanel bqtPanel;
 
 	/**
 	 * Launch the application.
@@ -71,22 +72,20 @@ public class ResultsGUI {
 		frmBqtTestParser = new JFrame(){
 			@Override
 			public void dispose() {
-				if(guiPanel.couldDispose()){
+				if(bqtPanel.couldDispose()){
 					super.dispose();
 				}
 			}
 		};
 		frmBqtTestParser.setTitle("BQT Test Parser");
-//		frmBqtTestParser.setBounds(100, 100, 682, 449);
 		frmBqtTestParser.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 		// Container for panels with test results and settings
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
-		log = GUIAppender.getTextPane("ALL_GUI");
-
-		JScrollPane logpane = new JScrollPane(log);
+		JTextPane log = GUIAppender.getTextPane("ALL_GUI");
+		JScrollPane logpane = Utils.getScrollPane(log);
 		
 		JSplitPane splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, logpane);
 		splitpane.setOneTouchExpandable(true);
@@ -98,17 +97,16 @@ public class ResultsGUI {
 
 		PanelDetails details = new PanelDetails(results);
 		PanelResults totalResults = new PanelResults(results, details);
-//		PanelSettings settings = new PanelSettings();
-		guiPanel = new GUIRunnerPanel();
-		JScrollPane bqtPane = new JScrollPane(guiPanel);
-		JScrollPane settingsPane = new JScrollPane(new SettingsPanel());
+		bqtPanel = new BQTRunnerPanel();
+		JenkinsPanel jenkinsPanel = new JenkinsPanel();
+		JScrollPane settingsPane = Utils.getScrollPane(new SettingsPanel());
 		
 		tabbedPane.addTab("Total Results", null, totalResults.getPanel(), null);
 		tabbedPane.addTab("Results Details", null, details.getPanel(), null);
-		tabbedPane.addTab("BQT Runner", null, bqtPane, null);
+		tabbedPane.addTab("BQT Runner", null, bqtPanel, null);
+		tabbedPane.addTab("Jenkins", null, jenkinsPanel, null);
 		tabbedPane.addTab("Settings", null, settingsPane, null);
-//		tabbedPane.addTab("Settings", null, settings.getPanel(), null);
-//		settings.initialize();
+//		tabbedPane.setSelectedIndex(3);
 		totalResults.initialize();
 		details.initialize();
 		frmBqtTestParser.pack();

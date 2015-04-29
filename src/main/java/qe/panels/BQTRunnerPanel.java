@@ -37,11 +37,14 @@ import qe.utils.Utils;
  * @author jdurani
  *
  */
-public class GUIRunnerPanel extends JPanel {
+public class BQTRunnerPanel extends JPanel {
 	
 	private static final long serialVersionUID = -7581598828220798660L;
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(GUIRunnerPanel.class);
+	/**
+	 * The logger.
+	 */
+	private static final Logger LOGGER = LoggerFactory.getLogger(BQTRunnerPanel.class);
 	
 	/**
 	 * BQT tool properties.
@@ -88,7 +91,7 @@ public class GUIRunnerPanel extends JPanel {
 	/**
 	 * Creates a new instance.
 	 */
-	public GUIRunnerPanel() {
+	public BQTRunnerPanel() {
 		super();
 		init();
 	}
@@ -130,21 +133,27 @@ public class GUIRunnerPanel extends JPanel {
 				.addComponent(cancelButton)
 				.addComponent(statusLabel)
 				.addComponent(status))
-			.addComponent(bqtLogScrollPane, 200, 400, 800)));
+			.addComponent(bqtLogScrollPane)));
 		
 		setLayout(gl);
 	}
 	
+	/**
+	 * Initializes status.
+	 */
 	private void initStatusLabel(){
 		status = new JLabel("NOT RUNNING");
-		status.setFont(new Font("Arial", Font.BOLD, 20));
+		status.setFont(status.getFont().deriveFont(Font.BOLD, 20));
 		Utils.setToolTipText(status, "BQT status");
 		statusLabel = new JLabel("Status: ");
 	}
-	
+
+    /**
+     * Initializes BQT log.
+     */
 	private void initBqtLogPane(){
 		bqtLogPane = GUIAppender.getTextPane("BQT_GUI");
-		bqtLogScrollPane = new JScrollPane(bqtLogPane);
+		bqtLogScrollPane = Utils.getScrollPane(bqtLogPane);
 	}
 	
 	/**
@@ -230,6 +239,11 @@ public class GUIRunnerPanel extends JPanel {
 		status.setForeground(bg);
 	}
 
+    /**
+     * Returns window ancestor of this panel.
+     * 
+     * @return
+     */
 	private JFrame getWindowAncestor(){
 		return (JFrame) SwingUtilities.getWindowAncestor(this);
 	}

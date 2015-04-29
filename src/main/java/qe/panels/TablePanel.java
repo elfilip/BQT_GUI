@@ -1,22 +1,17 @@
 package qe.panels;
 
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.GroupLayout.Group;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.commons.io.IOUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import qe.exception.ResultParsingException;
+import qe.utils.Utils;
 
 /**
  * Panel for basic table view.
@@ -32,15 +27,13 @@ public class TablePanel extends JPanel {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TablePanel.class);
     
-    private DocumentBuilderFactory DOC_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
-    
     /**
      * XML elements in error file.
      * 
      * @author jdurani
      *
      */
-    private static interface Elements {
+    private static interface TagNames {
         static final String ACTUAL_EXCEPTION = "actualException";
         static final String ACTUAL_QUERY_RESULTS = "actualQueryResults";
         static final String EXPECTED_EXCEPTION = "expectedException";
@@ -84,50 +77,51 @@ public class TablePanel extends JPanel {
      * @param xml XML document as string
      */
     public void parseXML(String xml){
+        LOGGER.debug("Parsing xml: {}", xml);
         this.removeAll();
         try{
-            DocumentBuilder dBuilder = DOC_BUILDER_FACTORY.newDocumentBuilder();
-            Document doc = dBuilder.parse(IOUtils.toInputStream(xml, "UTF-8"));
-            NodeList node = doc.getElementsByTagName(Elements.ACTUAL_QUERY_RESULTS);
+            Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
+            LOGGER.debug("Parsed document: {}", doc);
+            Elements node = doc.getElementsByTag(TagNames.ACTUAL_QUERY_RESULTS);
             boolean isSet = false;
-            if(node.getLength() != 0){
+            if(!node.isEmpty()){
                 isSet = true;
                 type = TYPE_TABLE;
             }
             if(!isSet){
-                node = doc.getElementsByTagName(Elements.EXPECTED_QUERY_RESULTS);
-                if(node.getLength() != 0){
+                node = doc.getElementsByTag(TagNames.EXPECTED_QUERY_RESULTS);
+                if(!node.isEmpty()){
                     isSet = true;
                     type = TYPE_TABLE;
                 }
             }
             if(!isSet){
-                node = doc.getElementsByTagName(Elements.ACTUAL_EXCEPTION);
-                if(node.getLength() != 0){
+                node = doc.getElementsByTag(TagNames.ACTUAL_EXCEPTION);
+                if(!node.isEmpty()){
                     isSet = true;
                     type = TYPE_EXCEPTION;
                 }
             }
             if(!isSet){
-                node = doc.getElementsByTagName(Elements.EXPECTED_EXCEPTION);
-                if(node.getLength() != 0){
+                node = doc.getElementsByTag(TagNames.EXPECTED_EXCEPTION);
+                if(!node.isEmpty()){
                     isSet = true;
                     type = TYPE_EXCEPTION;
                 }
             }
             if(!isSet){
                 LOGGER.warn("The document should cotain one of {}, {}, {}, {} ", 
-                        Elements.ACTUAL_EXCEPTION, Elements.ACTUAL_QUERY_RESULTS,
-                        Elements.EXPECTED_EXCEPTION, Elements.EXPECTED_QUERY_RESULTS);
+                        TagNames.ACTUAL_EXCEPTION, TagNames.ACTUAL_QUERY_RESULTS,
+                        TagNames.EXPECTED_EXCEPTION, TagNames.EXPECTED_QUERY_RESULTS);
                 //TODO set default content
                 return;
             }
             if(type == TYPE_TABLE){
-                buildTable(doc);
+                buildTable(node.get(0));
             } else {
-                buildException(doc);
+                buildException(node.get(0));
             }
-            initTable();
+            Utils.buildTable(this, table);
             repaint();
         } catch (Exception ex){
             LOGGER.error("ERROR", ex);
@@ -137,140 +131,69 @@ public class TablePanel extends JPanel {
     }
     
     /**
-     * Prepares this panel (creates layout from actual {@link #table}).
-     */
-    private void initTable(){
-        GroupLayout gl = new GroupLayout(this);
-        gl.setAutoCreateContainerGaps(false);
-        gl.setAutoCreateGaps(false);
-        // horizontal group
-        Group hor = gl.createParallelGroup(Alignment.LEADING, false);
-        for(int r = 0; r < rows; r++){
-            Group horSeq = gl.createSequentialGroup();
-            for(int c = 0; c < columns; c++){
-                horSeq.addComponent(table[r][c]);
-            }
-            hor.addGroup(horSeq);
-        }
-        gl.setHorizontalGroup(hor);
-        // vertical group
-        Group ver = gl.createParallelGroup(Alignment.LEADING, false);
-        for(int c = 0; c < columns; c++){
-            Group verSeq = gl.createSequentialGroup();
-            for(int r = 0; r < rows; r++){
-                verSeq.addComponent(table[r][c]);
-            }
-            ver.addGroup(verSeq);
-        }
-        gl.setVerticalGroup(ver);
-        
-        gl.linkSize(SwingConstants.VERTICAL, getAllTableAsArray());
-        for(int c = 0; c < columns; c++){
-            gl.linkSize(SwingConstants.HORIZONTAL, getTableColumnAsArray(c));
-        }
-        setLayout(gl);
-    }
-    
-    /**
-     * @return all {@link #table} as one-dimensional array
-     */
-    private Cell[] getAllTableAsArray(){
-        Cell[] cells = new Cell[rows * columns];
-        for(int r = 0; r < rows; r++){
-            System.arraycopy(table[r], 0, cells, r * columns, columns);
-        }
-        return cells;
-    }
-    
-    /**
-     * @param colIdx column index
-     * @return column in actual {@link #table} as one-dimensional array
-     */
-    private Cell[] getTableColumnAsArray(int colIdx){
-        Cell[] cells = new Cell[rows];
-        for(int r = 0; r < rows; r++){
-            cells[r] = table[r][colIdx];
-        }
-        return cells;
-    }
-    
-    /**
-     * Fills {@link #table}. Expects that document contains a table-result.
+     * Fills {@link #table}. Expects that element contains a table-result.
      * @param doc an XML document
-     * @throws SAXException if the document {@code doc} does not have expected form
+     * @throws ResultParsingException if the node {@code rootElement} does not have expected form
      */
-    private void buildTable(Document doc) throws ResultParsingException{
-        NodeList tableNodeList = doc.getElementsByTagName(Elements.TABLE);
-        if(tableNodeList.getLength() == 0){
-            throw new ResultParsingException("Expected element not found: " + Elements.TABLE);
+    private void buildTable(Element rootElement) throws ResultParsingException{
+        Elements tableElements = rootElement.getElementsByTag(TagNames.TABLE);
+        if(tableElements.isEmpty()){
+            throw new ResultParsingException("Expected element not found: " + TagNames.TABLE);
         }
-        Node tableElement = tableNodeList.item(0);
+        Element tableElement = tableElements.get(0);
         // create table
-        NamedNodeMap attrs = tableElement.getAttributes();
-        String colsC = attrs.getNamedItem(Elements.COLUMN_COUNT).getNodeValue();
-        String rowsC = attrs.getNamedItem(Elements.ROW_COUNT).getNodeValue();
+        String colsC = tableElement.attr(TagNames.COLUMN_COUNT);
+        String rowsC = tableElement.attr(TagNames.ROW_COUNT);
         columns = Integer.parseInt(colsC) + 1;
         rows = Integer.parseInt(rowsC) + 1;
         table = new Cell[rows][columns];
         table[0][0] = new Cell("Row");
-        // fill header
-        NodeList selectNodeList = doc.getElementsByTagName(Elements.SELECT);
-        if(selectNodeList.getLength() == 0){
-            throw new ResultParsingException("Expected element not found: " + Elements.SELECT);
-        }
-        NodeList dataElementList= doc.getElementsByTagName(Elements.DATA_ELEMENT);
-        if(dataElementList.getLength() == 0){
-            throw new ResultParsingException("No element " + Elements.DATA_ELEMENT + ".");
+        Elements dataElements = rootElement.select(TagNames.SELECT + " " + TagNames.DATA_ELEMENT);
+        if(dataElements.isEmpty()){
+            throw new ResultParsingException("No element " + TagNames.DATA_ELEMENT + ".");
         }
         int idx = 0;
-        while(idx < dataElementList.getLength()){
-            Node dataElement = dataElementList.item(idx);
-            StringBuilder b = new StringBuilder(dataElement.getTextContent())
-            .append(" [");
-            attrs = dataElement.getAttributes();
-            b.append(attrs.getNamedItem(Elements.TYPE).getNodeValue())
-                .append("]");
+        for(Element dataElement : dataElements){
+            StringBuilder b = new StringBuilder(dataElement.text())
+                    .append(" [")
+                    .append(dataElement.attr(TagNames.TYPE))
+                    .append("]");
             table[0][++idx] = new Cell(b.toString());
-            dataElement = dataElement.getNextSibling();
         }
         // fill rows
-        NodeList tableRowElementList = doc.getElementsByTagName(Elements.TABLE_ROW);
-        NodeList tableCellElementList = doc.getElementsByTagName(Elements.TABLE_CELL);
+        Elements tableRowElements= rootElement.getElementsByTag(TagNames.TABLE_ROW);
         int rowIdx = 0;
-        int cellIdxOverall = 0;
-        while(rowIdx < tableRowElementList.getLength()){
+        for(Element tableRow : tableRowElements){
             table[++rowIdx][0] = new Cell(Integer.toString(rowIdx));
             int cellIdx = 1;
-            while(cellIdx < columns){
-                Node tableCellElement = tableCellElementList.item(cellIdxOverall++);
-                table[rowIdx][cellIdx++] = new Cell(tableCellElement.getTextContent());
+            for(Element tableCell : tableRow.getElementsByTag(TagNames.TABLE_CELL)){
+                table[rowIdx][cellIdx++] = new Cell(tableCell.text());
             }
         }
     }
     
     /**
-     * Fills {@link #table}. Expects that document contains an exception-result.
+     * Fills {@link #table}. Expects that element contains an exception-result.
      * @param doc an XML document
-     * @throws SAXException if the document {@code doc} does not have expected form
+     * @throws ResultParsingException if the node {@code rootElement} does not have expected form
      */
-    private void buildException(Document doc) throws ResultParsingException{
-        NodeList exceptionTypeList = doc.getElementsByTagName(Elements.EXCEPTION_TYPE);
-        NodeList exceptionMessageList = doc.getElementsByTagName(Elements.MESSAGE);
-        if(exceptionTypeList.getLength() == 0){
-            throw new ResultParsingException("No element " + Elements.EXCEPTION_TYPE);
+    private void buildException(Element rootElement) throws ResultParsingException{
+        LOGGER.debug("Root element: " + rootElement);
+        Elements exceptionType = rootElement.getElementsByTag(TagNames.EXCEPTION_TYPE);
+        Elements exceptionMessage = rootElement.getElementsByTag(TagNames.MESSAGE);
+        if(exceptionType.isEmpty()){
+            throw new ResultParsingException("No element " + TagNames.EXCEPTION_TYPE);
         }
-        if(exceptionMessageList.getLength() == 0){
-            throw new ResultParsingException("No element " + Elements.MESSAGE);
+        if(exceptionMessage.isEmpty()){
+            throw new ResultParsingException("No element " + TagNames.MESSAGE);
         }
-        Node exceptionType = exceptionTypeList.item(0);
-        Node exceptionMessage= exceptionMessageList.item(0);
         rows = 2;
         columns = 2;
         table = new Cell[rows][columns];
         table[0][0] = new Cell("Exception type");
-        table[0][1] = new Cell(exceptionType.getTextContent());
+        table[0][1] = new Cell(exceptionType.get(0).text());
         table[1][0] = new Cell("Exception message");
-        table[1][1] = new Cell(exceptionMessage.getTextContent());
+        table[1][1] = new Cell(exceptionMessage.get(0).text());
     }
     
     /**

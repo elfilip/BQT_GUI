@@ -10,6 +10,10 @@ import java.util.Properties;
 /**
  * This singleton contains configuration properties of the application
  * 
+ * <p>
+ * How to add new property - create property key in Keys; create get/set methods;
+ * </p>
+ * 
  * @author felias
  *
  */
@@ -19,44 +23,56 @@ public class Settings {
      */
 	private static Settings settings = null;
 	
-	private String pathToTestResults;
-	private String pathToRepository;
-	private String host;
-	private String port;
-	private String username;
-	private String password;
-	private String scenarioInclude;
-	private String scenarioExclude;
-	private String outputDir;
-	private String scenarioPath;
-	private String config;
-	private String artifactsDir;
-	private String pre1Support;
-	private String teiidTestArtifactsDir;
-	private String useStandardArtifactsPath;
-	
 	/**
 	 * Path to properties file.
 	 */
-	private static final String PATH_TO_SETTINGS = System.getProperty("user.home") + File.separator + "bqt" + File.separator + "settings-bqt.properties";
+	private static final String PATH_TO_SETTINGS = System.getProperty("user.home")
+        	        + File.separator + "bqt"
+        	        + File.separator + "settings-bqt.properties";
 
-	// property keys
-	private static final String PROP_PATH_TO_TEST_RESULTS = "path_to_test_results";
-	private static final String PROP_PATH_TO_TEST_REPOSITORY = "path_to_test_repository";
-	private static final String PROP_HOST = "dv.host.name";
-	private static final String PROP_PORT = "dv.host.port";
-	private static final String PROP_USERNAME = "dv.host.username";
-	private static final String PROP_PASSWORD = "dv.host.password";
-	private static final String PROP_INCLUDE_SCENARIO = "bqt.scenario.include";
-	private static final String PROP_EXCLUDE_SCENARIO = "bqt.scenario.exclude";
-	private static final String PROP_SCENARIO_DIR = "bqt.scenario.dir";
-	private static final String PROP_OUTPUT = "bqt.output.dir";
-	private static final String PROP_CONFIG = "bqt.config";
-	private static final String PROP_ARTIFACTS_DIR = "bqt.artifacts.dir";
-	private static final String PROP_PRE_1_SUPPORT = "bqt.pre.1.support";
-	private static final String PROP_TEIID_TEST_ARTIFACTS_DIR = "bqt.teiid.test.artifacts.dir";
-	private static final String PROP_USE_STANDARD_ARTIFACTS_PATH = "bqt.use.standard.artifacts.path";
-
+	/**
+	 * Settings.
+	 */
+	private final Properties properties = new Properties();
+	
+	/**
+	 * Keys for properties.
+	 * @author jdurani
+	 *
+	 */
+    private enum Keys {
+        PATH_TO_TEST_RESULTS("path_to_test_results"),
+        PATH_TO_TEST_REPOSITORY("path_to_test_repository"),
+        HOST("dv.host.name"),
+        PORT("dv.host.port"),
+        USERNAME("dv.host.username"),
+        PASSWORD("dv.host.password"),
+        INCLUDE_SCENARIO("bqt.scenario.include"),
+        EXCLUDE_SCENARIO("bqt.scenario.exclude"),
+        SCENARIO_DIR("bqt.scenario.dir"),
+        OUTPUT("bqt.output.dir"),
+        CONFIG("bqt.config"),
+        ARTIFACTS_DIR("bqt.artifacts.dir"),
+        PRE_1_SUPPORT("bqt.pre.1.support"),
+        TEIID_TEST_ARTIFACTS_DIR("dataservices.teiid.test.artifacts.dir"),
+        USE_STANDARD_ARTIFACTS_PATH("bqt.use.standard.artifacts.path"),
+        JENKINS_USERNAME("jenkins.username"),
+        JENKINS_VIEW("jenkins.view"),
+        JENKINS_JOB("jenkins.job"),
+        JENKINS_DOWNLOAD_DIR("jenkins.download.dir");
+        
+        private final String key;
+        
+        private Keys(String key) {
+            this.key = key;
+        }
+        
+        @Override
+        public String toString() {
+            return key;
+        }
+    }
+	
 	protected Settings(){}
 	
 	/**
@@ -75,11 +91,11 @@ public class Settings {
 	}
 
 	/**
-	 * Returns path to test results(the folder of a file Summary_totals.txt).
+	 * Returns path to test results (the folder of a file Summary_totals.txt).
 	 * @return
 	 */
 	public String getPathToTestResults() {
-		return pathToTestResults;
+		return getFromProperties(Keys.PATH_TO_TEST_RESULTS);
 	}
 
 	/**
@@ -88,8 +104,7 @@ public class Settings {
 	 * @param pathToTestResults
 	 */
 	public void setPathToTestResults(String pathToTestResults) {
-		this.pathToTestResults = pathToTestResults;
-		saveSettings();
+	    addToProperties(Keys.PATH_TO_TEST_RESULTS, pathToTestResults);
 	}
 	
 	/**
@@ -97,7 +112,7 @@ public class Settings {
 	 * @return
 	 */
 	public String getPathToRepository() {
-		return pathToRepository;
+		return getFromProperties(Keys.PATH_TO_TEST_REPOSITORY);
 	}
 
 	/**
@@ -105,8 +120,7 @@ public class Settings {
 	 * @param pathToRepository
 	 */
 	public void setPathToRepository(String pathToRepository) {
-		this.pathToRepository = pathToRepository;
-		saveSettings();
+	    addToProperties(Keys.PATH_TO_TEST_REPOSITORY, pathToRepository);
 	}
 
 	/**
@@ -115,7 +129,7 @@ public class Settings {
 	 * @return
 	 */
 	public String getHost() {
-		return host;
+		return getFromProperties(Keys.HOST);
 	}
 	
 	/**
@@ -124,8 +138,7 @@ public class Settings {
 	 * @param host
 	 */
 	public void setHost(String host) {
-		this.host = host;
-		saveSettings();
+	    addToProperties(Keys.HOST, host);
 	}
 
     /**
@@ -134,7 +147,7 @@ public class Settings {
      * @return
      */
 	public String getPort() {
-		return port;
+	    return getFromProperties(Keys.PORT);
 	}
 
     /**
@@ -143,8 +156,7 @@ public class Settings {
      * @param port
      */
 	public void setPort(String port) {
-		this.port = port;
-		saveSettings();
+	    addToProperties(Keys.PORT, port);
 	}
 
     /**
@@ -153,7 +165,7 @@ public class Settings {
      * @return
      */
 	public String getUsername() {
-		return username;
+	    return getFromProperties(Keys.USERNAME);
 	}
 
     /**
@@ -162,8 +174,7 @@ public class Settings {
      * @param username
      */
 	public void setUsername(String username) {
-		this.username = username;
-		saveSettings();
+	    addToProperties(Keys.USERNAME, username);
 	}
 
     /**
@@ -172,7 +183,7 @@ public class Settings {
      * @return
      */
 	public String getPassword() {
-		return password;
+	    return getFromProperties(Keys.PASSWORD);
 	}
 
     /**
@@ -181,8 +192,7 @@ public class Settings {
      * @param password
      */
 	public void setPassword(String password) {
-		this.password = password;
-		saveSettings();
+	    addToProperties(Keys.PASSWORD, password);
 	}
 
     /**
@@ -191,7 +201,7 @@ public class Settings {
      * @return
      */
 	public String getScenarioInclude() {
-		return scenarioInclude;
+	    return getFromProperties(Keys.INCLUDE_SCENARIO);
 	}
 
     /**
@@ -200,8 +210,7 @@ public class Settings {
      * @param scenarioInclude
      */
 	public void setScenarioInclude(String scenarioInclude) {
-		this.scenarioInclude = scenarioInclude;
-		saveSettings();
+	    addToProperties(Keys.INCLUDE_SCENARIO, scenarioInclude);
 	}
 
     /**
@@ -210,7 +219,7 @@ public class Settings {
      * @return
      */
 	public String getScenarioExclude() {
-		return scenarioExclude;
+	    return getFromProperties(Keys.EXCLUDE_SCENARIO);
 	}
 
     /**
@@ -219,8 +228,7 @@ public class Settings {
      * @param scenarioExclude
      */
 	public void setScenarioExclude(String scenarioExclude) {
-		this.scenarioExclude = scenarioExclude;
-		saveSettings();
+	    addToProperties(Keys.EXCLUDE_SCENARIO, scenarioExclude);
 	}
 
     /**
@@ -229,7 +237,7 @@ public class Settings {
      * @return
      */
 	public String getOutputDir() {
-		return outputDir;
+	    return getFromProperties(Keys.OUTPUT);
 	}
 
     /**
@@ -238,8 +246,7 @@ public class Settings {
      * @param outputDir
      */
 	public void setOutputDir(String outputDir) {
-		this.outputDir = outputDir;
-		saveSettings();
+	    addToProperties(Keys.OUTPUT, outputDir);
 	}
 
     /**
@@ -248,7 +255,7 @@ public class Settings {
      * @return
      */
 	public String getScenarioPath() {
-		return scenarioPath;
+	    return getFromProperties(Keys.SCENARIO_DIR);
 	}
 
     /**
@@ -257,8 +264,7 @@ public class Settings {
      * @param scenarioPath
      */
 	public void setScenarioPath(String scenarioPath) {
-		this.scenarioPath = scenarioPath;
-		saveSettings();
+	    addToProperties(Keys.SCENARIO_DIR, scenarioPath);
 	}
 
     /**
@@ -267,7 +273,7 @@ public class Settings {
      * @return
      */
 	public String getConfig() {
-		return config;
+	    return getFromProperties(Keys.CONFIG);
 	}
 
     /**
@@ -275,8 +281,7 @@ public class Settings {
      * @param config
      */
 	public void setConfig(String config) {
-		this.config = config;
-		saveSettings();
+	    addToProperties(Keys.CONFIG, config);
 	}
 	
 
@@ -286,7 +291,7 @@ public class Settings {
      * @return
      */
 	public String getArtifactsDir() {
-		return artifactsDir;
+	    return getFromProperties(Keys.ARTIFACTS_DIR);
 	}
 
     /**
@@ -295,8 +300,7 @@ public class Settings {
      * @param artifactsDir
      */
 	public void setArtifactsDir(String artifactsDir) {
-		this.artifactsDir = artifactsDir;
-		saveSettings();
+	    addToProperties(Keys.ARTIFACTS_DIR, artifactsDir);
 	}
 
     /**
@@ -305,7 +309,7 @@ public class Settings {
      * @return
      */
 	public String getPre1Support() {
-		return pre1Support;
+	    return getFromProperties(Keys.PRE_1_SUPPORT);
 	}
 
     /**
@@ -314,8 +318,7 @@ public class Settings {
      * @param pre1Support
      */
 	public void setPre1Support(String pre1Support) {
-	    this.pre1Support = pre1Support;
-	    saveSettings();
+	    addToProperties(Keys.PRE_1_SUPPORT, pre1Support);
 	}
 
     /**
@@ -324,7 +327,7 @@ public class Settings {
      * @return
      */
 	public String getTeiidTestArtifactsDir() {
-        return teiidTestArtifactsDir;
+	    return getFromProperties(Keys.TEIID_TEST_ARTIFACTS_DIR);
     }
 
     /**
@@ -333,8 +336,7 @@ public class Settings {
      * @param teiidTestArtifacts
      */
 	public void setTeiidTestArtifactsDir(String teiidTestArtifacts) {
-        this.teiidTestArtifactsDir = teiidTestArtifacts;
-        saveSettings();
+	    addToProperties(Keys.TEIID_TEST_ARTIFACTS_DIR, teiidTestArtifacts);
     }
 
     /**
@@ -343,7 +345,7 @@ public class Settings {
      * @return
      */
 	public String getUseStandardArtifactsPath() {
-        return useStandardArtifactsPath;
+	    return getFromProperties(Keys.USE_STANDARD_ARTIFACTS_PATH);
     }
 
     /**
@@ -352,34 +354,88 @@ public class Settings {
      * @param useStandardArtifactsPath
      */
 	public void setUseStandardArtifactsPath(String useStandardArtifactsPath) {
-        this.useStandardArtifactsPath = useStandardArtifactsPath;
-        saveSettings();
+	    addToProperties(Keys.USE_STANDARD_ARTIFACTS_PATH, useStandardArtifactsPath);
     }
 	
+	/**
+	 * Returns user name for jenkins.
+	 * 
+	 * @return
+	 */
+    public String getJenkinsUsername() {
+        return getFromProperties(Keys.JENKINS_USERNAME);
+    }
+
+    /**
+     * Sets user name for jenkins.
+     * @param jenkinsUsername
+     */
+    public void setJenkinsUsername(String jenkinsUsername) {
+        addToProperties(Keys.JENKINS_USERNAME, jenkinsUsername);
+    }
+
+    /**
+     * Returns jenkins view.
+     * 
+     * @return
+     */
+    public String getJenkinsView() {
+        return getFromProperties(Keys.JENKINS_VIEW);
+    }
+
+    /**
+     * Sets jenkins view.
+     * 
+     * @param jenkinsView
+     */
+    public void setJenkinsView(String jenkinsView) {
+        addToProperties(Keys.JENKINS_VIEW, jenkinsView);
+    }
+    
+    /**
+     * Returns jekins job.
+     * 
+     * @return
+     */
+    public String getJenkinsJob() {
+        return getFromProperties(Keys.JENKINS_JOB);
+    }
+    
+    /**
+     * Sets jenkins job.
+     * 
+     * @param jenkinsJob
+     */
+    public void setJenkinsJob(String jenkinsJob) {
+        addToProperties(Keys.JENKINS_JOB, jenkinsJob);
+    }
+
+    /**
+     * Returns jekins download directory.
+     * 
+     * @return
+     */
+    public String getJenkinsDownloadDir() {
+        return getFromProperties(Keys.JENKINS_DOWNLOAD_DIR);
+    }
+
+    /**
+     * Sets jenkins download directory.
+     * 
+     * @param jenkinsDownloadDir
+     */
+    public void setJenkinsDownloadDir(String jenkinsDownloadDir) {
+        addToProperties(Keys.JENKINS_DOWNLOAD_DIR, jenkinsDownloadDir);
+    }
+
     /**
 	 * Saves current settings into a file.
+	 * 
 	 * @return false if the settings file doesn't exist
 	 */
 	public boolean saveSettings() {
-		Properties props = new Properties();
-		addToProperties(props, PROP_PATH_TO_TEST_RESULTS, pathToTestResults);
-		addToProperties(props, PROP_PATH_TO_TEST_REPOSITORY, pathToRepository);
-		addToProperties(props, PROP_ARTIFACTS_DIR, artifactsDir);
-		addToProperties(props, PROP_CONFIG, config);
-		addToProperties(props, PROP_EXCLUDE_SCENARIO, scenarioExclude);
-		addToProperties(props, PROP_INCLUDE_SCENARIO, scenarioInclude);
-		addToProperties(props, PROP_HOST, host);
-		addToProperties(props, PROP_PORT, port);
-		addToProperties(props, PROP_USERNAME, username);
-		addToProperties(props, PROP_PASSWORD, password);
-		addToProperties(props, PROP_SCENARIO_DIR, scenarioPath);
-		addToProperties(props, PROP_OUTPUT, outputDir);
-		addToProperties(props, PROP_PRE_1_SUPPORT, pre1Support);
-		addToProperties(props, PROP_TEIID_TEST_ARTIFACTS_DIR, teiidTestArtifactsDir);
-		addToProperties(props, PROP_USE_STANDARD_ARTIFACTS_PATH, useStandardArtifactsPath);
-		
 		try {
-			props.store(new FileOutputStream(PATH_TO_SETTINGS), null);
+			properties.store(new FileOutputStream(PATH_TO_SETTINGS), null);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			return false;
@@ -393,72 +449,49 @@ public class Settings {
 	/**
 	 * Adds property key-value to properties.
 	 * 
-	 * @param props
 	 * @param key
 	 * @param value
 	 */
-	private void addToProperties(Properties props, String key, String value){
-		if (value != null && !value.isEmpty()) {
-			props.setProperty(key, value);
-		} else {
-			props.setProperty(key, "");
-		}
+	private void addToProperties(Keys key, String value){
+	    properties.setProperty(key.key, value == null ? "" : value);
+	    saveSettings();
 	}
+	
+	/**
+	 * Returns property by key.
+	 * 
+	 * @param key
+	 * @return
+	 */
+	private String getFromProperties(Keys key){
+	    return properties.getProperty(key.key, "");
+	}
+	
 	/**
 	 * Loads settings form file.
 	 */
 	public void loadSettings() {
-		Properties props = new Properties();
+	    properties.clear();
 		try {
-			props.load(new FileInputStream(PATH_TO_SETTINGS));
+			properties.load(new FileInputStream(PATH_TO_SETTINGS));
 		} catch (FileNotFoundException e) {
 			createEmptyConfigurationFile();
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		pathToTestResults = props.getProperty(PROP_PATH_TO_TEST_RESULTS);
-		pathToRepository = props.getProperty(PROP_PATH_TO_TEST_REPOSITORY);
-		artifactsDir = props.getProperty(PROP_ARTIFACTS_DIR);
-		config = props.getProperty(PROP_CONFIG);
-		scenarioExclude = props.getProperty(PROP_EXCLUDE_SCENARIO);
-		scenarioInclude = props.getProperty(PROP_INCLUDE_SCENARIO);
-		host = props.getProperty(PROP_HOST);
-		port = props.getProperty(PROP_PORT);
-		username = props.getProperty(PROP_USERNAME);
-		password = props.getProperty(PROP_PASSWORD);
-		scenarioPath = props.getProperty(PROP_SCENARIO_DIR);
-		outputDir = props.getProperty(PROP_OUTPUT);
-		pre1Support = props.getProperty(PROP_PRE_1_SUPPORT);
-		teiidTestArtifactsDir = props.getProperty(PROP_TEIID_TEST_ARTIFACTS_DIR);
-		useStandardArtifactsPath = props.getProperty(PROP_USE_STANDARD_ARTIFACTS_PATH);
 	}
 
 	/**
 	 * Creates empty configuration file as a example if no configuration file exists.
 	 */
 	public void createEmptyConfigurationFile() {
-		Properties props = new Properties();
-
-		props.setProperty(PROP_PATH_TO_TEST_RESULTS, "");
-
-		props.setProperty(PROP_PATH_TO_TEST_REPOSITORY, "");
-		
-		props.setProperty(PROP_ARTIFACTS_DIR, "");
-		props.setProperty(PROP_CONFIG, "");
-		props.setProperty(PROP_EXCLUDE_SCENARIO, "");
-		props.setProperty(PROP_INCLUDE_SCENARIO, "");
-		props.setProperty(PROP_HOST, "");
-		props.setProperty(PROP_PORT, "");
-		props.setProperty(PROP_USERNAME, "");
-		props.setProperty(PROP_PASSWORD, "");
-		props.setProperty(PROP_SCENARIO_DIR, "");
-		props.setProperty(PROP_OUTPUT, "");
-		props.setProperty(PROP_PRE_1_SUPPORT, "");
-		props.setProperty(PROP_TEIID_TEST_ARTIFACTS_DIR, "");
-		props.setProperty(PROP_USE_STANDARD_ARTIFACTS_PATH, "");
+	    properties.clear();
+	    for(Keys key : Keys.values()){
+	        properties.setProperty(key.key, "");
+	    }
 		try {
-			props.store(new FileOutputStream(PATH_TO_SETTINGS), null);
+			properties.store(new FileOutputStream(PATH_TO_SETTINGS), null);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

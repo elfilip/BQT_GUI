@@ -81,7 +81,7 @@ public class SettingsPanel extends JPanel{
 	private JTextField config;
 	private JLabel configLabel;
 	private JButton configBrowseButton;
-	
+
 	private JCheckBox useStandardArtifactsPath;
 	private JTextField artifactsDir;
 	private JLabel artifactsDirLabel;
@@ -233,18 +233,18 @@ public class SettingsPanel extends JPanel{
 	
 	private void initDefaultValues(){
 		Settings settings = Settings.getInstance();
-		setText(summaryTotalsDir, settings.getPathToTestResults());
-		setText(repositorySettings, settings.getPathToRepository());
-		setText(host, settings.getHost());
-		setText(port, settings.getPort());
-		setText(userName, settings.getUsername());
-		setText(password, settings.getPassword());
-		setText(include, settings.getScenarioInclude());
-		setText(exclude, settings.getScenarioExclude());
-		setText(scenarios, settings.getScenarioPath());
-		setText(outputDir, settings.getOutputDir());
-		setText(config, settings.getConfig());
-		setText(artifactsDir, settings.getArtifactsDir());
+		summaryTotalsDir.setText(settings.getPathToTestResults());
+		repositorySettings.setText(settings.getPathToRepository());
+		host.setText(settings.getHost());
+		port.setText(settings.getPort());
+		userName.setText(settings.getUsername());
+		password.setText(settings.getPassword());
+		include.setText(settings.getScenarioInclude());
+		exclude.setText(settings.getScenarioExclude());
+		scenarios.setText(settings.getScenarioPath());
+		outputDir.setText(settings.getOutputDir());
+		config.setText(settings.getConfig());
+		artifactsDir.setText(settings.getArtifactsDir());
 		pre1Supported.setSelected(Boolean.parseBoolean(settings.getPre1Support()));
 		String tta = settings.getTeiidTestArtifactsDir();
 		if(TEIID_TEST_ARTIFACTS_V6.equals(tta)){
@@ -259,12 +259,6 @@ public class SettingsPanel extends JPanel{
         artifactsDir.setEnabled(enabled);
         artifactsDirBrowseButton.setEnabled(enabled);
         artifactsDirLabel.setEnabled(enabled);
-	}
-	
-	private void setText(JTextField field, String text){
-		if (text != null) {
-			field.setText(text);
-		}
 	}
 	
 	private void initArtifactsVersion(){
@@ -384,7 +378,7 @@ public class SettingsPanel extends JPanel{
 	 * @see {@link JFileChooser#setFileSelectionMode(int)}
 	 * 
 	 */
-	private JButton getBrowseButton(int selectionMode, JTextField textField, SaveToSettingsFileAction saveAction){
+	public static JButton getBrowseButton(int selectionMode, JTextField textField, SaveToSettingsFileAction saveAction){
 		JButton button = new JButton("Browse");
 		button.addActionListener(new BrowseActionListener(textField, selectionMode, saveAction));
 		return button;
@@ -422,7 +416,7 @@ public class SettingsPanel extends JPanel{
 		Utils.setToolTipText(port, "Port of JDV server. Same as \"host.port\" property.");
 	}
 	
-	private static JTextField getTextFiled(final SaveToSettingsFileAction focusLostSaveAction){
+	public static JTextField getTextFiled(final SaveToSettingsFileAction focusLostSaveAction){
 		JTextField field = new JTextField();
 		field.addFocusListener(new FocusAdapter() {
 			@Override
@@ -468,7 +462,7 @@ public class SettingsPanel extends JPanel{
 		}
 	}
 	
-	private static interface SaveToSettingsFileAction{
+	public static interface SaveToSettingsFileAction{
 		void save();
 	}
 	
