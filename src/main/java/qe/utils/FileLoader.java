@@ -143,11 +143,12 @@ public class FileLoader {
 
 		int index = fileName.lastIndexOf("_") - 1;
 		if (index > 0) {
-			String normalizedFileName = fileName.substring(0, fileName.lastIndexOf("_") - 1);
+			String normalizedFileName = fileName.substring(0, fileName.lastIndexOf("_"))+File.separator;
 			normalizedFileName=normalizedFileName+ fileName.substring(0, fileName.length() - 3) + "xml";
 			logger.debug("Guessing test result filename: "+normalizedFileName);
 			File file = new File(pathToExpectedResults, normalizedFileName );
 			if (file.exists()) {
+				logger.debug("Guessing was succesfull");
 				return file;
 			}
 		}
