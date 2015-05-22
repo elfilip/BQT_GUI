@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+import javax.swing.JButton;
+
 /**
  * This singleton contains configuration properties of the application
  * 
@@ -22,7 +24,6 @@ public class Settings {
      * Singleton instance.
      */
 	private static Settings settings = null;
-	
 	/**
 	 * Path to properties file.
 	 */
@@ -73,7 +74,7 @@ public class Settings {
         }
     }
 	
-	protected Settings(){}
+	private Settings(){}
 	
 	/**
 	 * Returns the instance of Settings class or it will create a new instance if no one exists.

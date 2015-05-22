@@ -31,6 +31,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
@@ -42,6 +43,7 @@ import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import qe.entity.result.RefreshResults;
 import qe.entity.settings.Settings;
 import qe.jenkins.JenkinsActiveConfiguration;
 import qe.jenkins.JenkinsBuild;
@@ -49,6 +51,7 @@ import qe.jenkins.JenkinsJob;
 import qe.jenkins.JenkinsManager;
 import qe.jenkins.JenkinsManager.DownloadPublisher;
 import qe.panels.SettingsPanel.SaveToSettingsFileAction;
+import qe.utils.FileLoader;
 import qe.utils.Utils;
 
 /**
@@ -81,6 +84,7 @@ public class JenkinsPanel extends JPanel {
     private JLabel jobNameLabel;
     private JButton selectJobButton;
     private JButton showJobButton;
+    private JButton showResults;
     
     private JenkinsBuildPanel jenkinsBuildPanel;
     private JScrollPane jenkinsBuildPane;
@@ -130,7 +134,8 @@ public class JenkinsPanel extends JPanel {
                 .addComponent(showJobButton)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode))
+                .addComponent(downloadCustomArtifactsOfNode)
+                .addComponent(showResults))
             .addGroup(gl.createParallelGroup()
                 .addGroup(gl.createParallelGroup()
                     .addComponent(statusLabel)
@@ -156,7 +161,8 @@ public class JenkinsPanel extends JPanel {
                 .addComponent(showJobButton)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode))
+                .addComponent(downloadCustomArtifactsOfNode)
+                .addComponent(showResults))
             .addGroup(gl.createSequentialGroup()
                 .addGroup(gl.createSequentialGroup()
                     .addComponent(statusLabel)
@@ -180,7 +186,7 @@ public class JenkinsPanel extends JPanel {
         
         gl.linkSize(SwingConstants.VERTICAL, jobName, viewName, downloadDir);
         gl.linkSize(selectJobButton, selectViewButton, selectDownloadDirButton);
-        gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode, downloadCustomArtifactsOfNode);
+        gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode, downloadCustomArtifactsOfNode,showResults);
         
         setLayout(gl);
     }
@@ -263,6 +269,9 @@ public class JenkinsPanel extends JPanel {
         
         downloadCustomArtifactsOfNode = new JButton("Download custom artifacts of node");
         downloadCustomArtifactsOfNode.addActionListener(new DownloadCustomArtifactsOfNodeActionListener());
+        
+        showResults = new JButton("Show results");
+        showResults.addActionListener(new showResultsActionListener());
     }
 
     /**
@@ -747,6 +756,57 @@ public class JenkinsPanel extends JPanel {
         }
     }
 
+    private class showResultsActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+        	System.out.println("asdfasfasf");
+        	LOGGER.info("Showing test results from Jenkins");   
+        	 if(jenkinsJob==null){
+        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No jenkis job. Use \"Show selected job\" button.",null);
+        	return;
+        	 }     
+        	 if(jenkinsBuildPanel.getSelectedBuildNumber() == null){
+        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR," No build number selected",null);
+                 return;
+             }
+        	 LOGGER.info("Vybrany run jex "+ jenkinsBuildPanel.getSelectedXValue());
+        	 LOGGER.info("Vybrany run jey "+ jenkinsBuildPanel.getSelectedYValue());
+        	 LOGGER.info("Vybrany run jeurl "+ jenkinsBuildPanel.getUrlOfSelectedNode());
+        	 Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
+             JenkinsBuild actualBuild = null;
+             String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
+             for(JenkinsBuild b : builds){
+                 if(b.getBuildNumber().equals(sbn)){
+                     actualBuild = b;
+                     break;
+                 }
+             }
+             if(jenkinsBuildPanel.getSelectedXValue() == null || jenkinsBuildPanel.getSelectedYValue()==null){
+            	 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No build run is selected",null);
+            	 return;
+             }
+        	 String basePath = downloadDir.getText() + File.separator
+                     + jenkinsBuildPanel.getJobName() + File.separator
+                     + actualBuild.getBuildNumber();
+        	File jenkinsResults = new File(basePath,jenkinsBuildPanel.getSelectedXValue() + File.separator + jenkinsBuildPanel.getSelectedYValue());
+        	LOGGER.debug("Searching jenkins results at "+jenkinsResults.getAbsolutePath());
+        	File summaryResults=FileLoader.fullTextSearch(jenkinsResults, "Summary_totals.txt");
+        	if(summaryResults ==null){
+        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No test results have been found at the location:\n"+jenkinsResults.getAbsolutePath()+"\nYou must download the results before showing them.",null);
+        	return;
+        	}
+        	Settings.getInstance().setPathToTestResults(summaryResults.getParent());
+        	JTabbedPane parent;
+        	if (getParent() instanceof JTabbedPane) {
+    			parent= (JTabbedPane) getParent();
+    		} else {
+    			throw new RuntimeException("This panel must be in tabbed pane");
+    		}
+        	parent.setSelectedIndex(0);
+        	RefreshResults.getRefreshButton().doClick();
+        }
+    }
+    
     /**
      * Downloads selected artifacts of node (active configuration).
      * 

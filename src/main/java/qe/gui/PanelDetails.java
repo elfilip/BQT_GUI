@@ -301,7 +301,7 @@ public class PanelDetails extends TabbedPanel {
 		invisible.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				logger.info("cool");
+				logger.info("Not yet implemented");
 
 			}
 		});

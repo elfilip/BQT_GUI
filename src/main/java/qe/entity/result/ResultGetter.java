@@ -85,7 +85,7 @@ public class ResultGetter {
 		} else {
 			File compareErrorsFolder = new File(Settings.getInstance().getPathToTestResults() + "/" + testName + "/" + COMPARE_ERRORS + "/");
 			if (compareErrorsFolder.exists() == false) {
-				throw new GUIException("No compare errors have been found.");
+				return result;
 			}
 			for (File file : FileLoader.getAllFilesInFolder(compareErrorsFolder, ".err")) {
 				try {
