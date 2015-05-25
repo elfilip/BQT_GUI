@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qe.exception.JenkinsException;
+import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 
 /**
  * Utilities for jenkis API invoking.
@@ -48,7 +49,8 @@ public class JenkinsManager {
      * The extension for the URL to download the artifacts. 
      */
     private static final String ZIP = "*zip*/tmp.zip";
-    
+    private static final String X_PATH = "xpath=";
+    private static final String WRAPPER = "wrapper=";
     /**
      * Private constructor - all methods are static.
      */
@@ -133,6 +135,29 @@ public class JenkinsManager {
         }
         addZip(urlBuilder);
         downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);        
+    }
+    
+    public static void getStatusOfActiveConfiguration(JenkinsActiveConfiguration jac) throws JenkinsException{
+        String url = jac.getUrl();
+        if(url == null || url.isEmpty()){
+            throw new JenkinsException("URL of active configuration cannot be empty: " + url);
+        }
+        StringBuilder buildingBuilder = new StringBuilder(url);
+        addApi(buildingBuilder);
+        addXPath(buildingBuilder, "/matrixRun/building", "tmp");
+        Document buildingDoc = getDocument(buildingBuilder.toString());
+        boolean isBulding = JenkinsXMLAPIPUtils.getBuildingStatus(buildingDoc);
+        if(isBulding){
+            jac.setStatus(JenkinsStatus.BUILDING);
+        } else {
+            StringBuilder resultBuilder = new StringBuilder(url);
+            addApi(resultBuilder);
+            addXPath(resultBuilder, "/matrixRun/result", "tmp");
+            Document resultDoc = JenkinsManager.getDocument(resultBuilder.toString());
+            JenkinsStatus st = JenkinsXMLAPIPUtils.getStatus(resultDoc);
+            jac.setStatus(st);
+        }
+        LOGGER.debug("Status of active configuration {}", jac.getStatus());
     }
     
     /**
@@ -308,6 +333,21 @@ public class JenkinsManager {
      */
     static StringBuilder addZip(StringBuilder b){
         return b.append(ZIP);
+    }
+    
+    static StringBuilder addXPath(StringBuilder b, String xPath, String wrapper){
+        if(xPath == null){
+            return b;
+        }
+        b.append("?")
+            .append(X_PATH)
+            .append(xPath);
+        if(wrapper == null){
+            return b;
+        }
+        return b.append("&")
+            .append(WRAPPER)
+            .append(wrapper);
     }
     
     /**

@@ -133,7 +133,7 @@ public class BQTRunnerPanel extends JPanel {
 				.addComponent(cancelButton)
 				.addComponent(statusLabel)
 				.addComponent(status))
-			.addComponent(bqtLogScrollPane)));
+			.addComponent(bqtLogScrollPane, 200, 600, 600)));
 		
 		setLayout(gl);
 	}

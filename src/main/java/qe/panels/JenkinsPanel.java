@@ -55,7 +55,7 @@ import qe.utils.Utils;
  * This class represents a {@link JPanel} for jenkins.
  * 
  * @author jdurani
- *
+ * TODO - show status of active configuration
  */
 public class JenkinsPanel extends JPanel {
 

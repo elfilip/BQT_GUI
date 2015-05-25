@@ -79,6 +79,8 @@ public class PanelDetails extends TabbedPanel {
 		textAreaActualRes = new JTextArea();
 		txtErrorErrorError = new JTextField();
 		txtQueryName = new JTextField();
+		tableExpectedResult = new TablePanel();
+        tableActualResult = new TablePanel();
 	}
 
 	public void initialize() {
@@ -94,7 +96,7 @@ public class PanelDetails extends TabbedPanel {
 		DefaultTableModel errModel = new DefaultTableModel();
 		errModel.setColumnIdentifiers(new Object[] { "Errors" });
 		tableErrorList = new ScrollableTable(errModel);
-		tableErrorList.setPreferredSize(new Dimension(750, 750));
+//		tableErrorList.setPreferredSize(new Dimension(750, 750));
 		tableErrorList.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		tableErrorList.getSelectionModel().addListSelectionListener(new ListSelectionListener() { // initializes
 																									// expected
@@ -360,9 +362,6 @@ public class PanelDetails extends TabbedPanel {
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
-		
-        tableExpectedResult = new TablePanel();
-        tableActualResult = new TablePanel();
         
         final JButton shoAsTable = new JButton("Show as table");
         shoAsTable.addActionListener(new ActionListener() {

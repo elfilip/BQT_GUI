@@ -27,7 +27,7 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
  * This class is thread safe.
  * 
  * @author jdurani
- *
+ * TODO - append behavior - always at end, do nothing,...
  */
 @SuppressWarnings("serial")
 @Plugin(name = "GUI", category = "Core", elementType = "appender", printObject = true)
@@ -121,7 +121,7 @@ public final class GUIAppender extends AbstractAppender {
 		if (bArray == null) {
 			return;
 		}
-		String text = new String(bArray); 
+		String text = new String(bArray);
 		try {
 			StyledDocument doc = textPane.getStyledDocument();
 			Style s = doc.getStyle(level.name());
@@ -140,7 +140,7 @@ public final class GUIAppender extends AbstractAppender {
 	 * @return
 	 */
 	public static final JTextPane getTextPane(String appendersName){
-		return TEXT_PANES.get(appendersName);
+	    return TEXT_PANES.get(appendersName);
 	}
 }
 

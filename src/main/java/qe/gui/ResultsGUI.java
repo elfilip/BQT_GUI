@@ -82,7 +82,7 @@ public class ResultsGUI {
 
 		// Container for panels with test results and settings
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+//		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
 		JTextPane log = GUIAppender.getTextPane("ALL_GUI");
 		JScrollPane logpane = Utils.getScrollPane(log);

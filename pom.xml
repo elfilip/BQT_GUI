@@ -5,24 +5,9 @@
     <artifactId>BQT_gui2</artifactId>
     <version>0.6-SNAPSHOT</version>
     <name>Gui Application</name>
-    <profiles>
-        <profile>
-            <id>jdurani</id>
-            <activation>
-                <property>
-                    <name>env.USER</name>
-                    <value>jdurani</value>
-                </property>
-            </activation>
-            <properties>
-                <client.jar.path>/home/jdurani/redhat/data-virtualization/dv_6.2.0/jboss-eap-6.4/dataVirtualization/jdbc</client.jar.path>
-            </properties>
-        </profile>
-    </profiles>
     <properties>
         <bqt.version>2.2.0</bqt.version>
         <client.version>8.7.1.redhat-62-1-jdbc</client.version>
-        <client.jar.name>teiid-${client.version}.jar</client.jar.name>
     </properties>
     <dependencies>
         <dependency>
@@ -42,10 +27,8 @@
         </dependency>
         <dependency>
             <groupId>org.jboss.teiid</groupId>
-            <artifactId>teiid</artifactId>
+            <artifactId>teiid-client</artifactId>
             <version>${client.version}</version>
-            <scope>system</scope>
-            <systemPath>${client.jar.path}/${client.jar.name}</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

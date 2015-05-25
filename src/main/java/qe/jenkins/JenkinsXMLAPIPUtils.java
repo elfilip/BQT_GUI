@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qe.exception.JenkinsException;
+import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 
 /**
  * Utilities for jenkins' XML API.
@@ -118,6 +119,28 @@ public class JenkinsXMLAPIPUtils {
             job.addBuild(build);
         }
         return job;
+    }
+    
+    public static boolean getBuildingStatus(Document doc){
+        Element root = doc.child(0);
+        String bool; 
+        if(root.tagName().equals("building")){
+            bool = getTextOfElements(doc, "building").get(0);
+        } else {
+            bool = getTextOfElements(doc, root.tagName() + " > building").get(0);
+        }
+        return Boolean.valueOf(bool);
+    }
+    
+    public static JenkinsStatus getStatus(Document doc){
+        Element root = doc.child(0);
+        String status;
+        if(root.tagName().equals("result")){
+            status = getTextOfElements(doc, "result").get(0);
+        } else {
+            status = getTextOfElements(doc, root.tagName() + " > result").get(0);
+        }
+        return JenkinsStatus.valueOf(status);
     }
     
     /**
