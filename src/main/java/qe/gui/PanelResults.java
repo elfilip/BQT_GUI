@@ -3,6 +3,8 @@ package qe.gui;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
@@ -19,8 +21,10 @@ import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import qe.entity.result.RefreshResults;
 import qe.entity.result.ResultGetter;
 import qe.entity.result.TestResult;
+import qe.entity.settings.Settings;
 import qe.exception.ResultParsingException;
 import qe.utils.Utils;
 /**
@@ -94,12 +98,22 @@ public class PanelResults extends TabbedPanel {
 
 		// Button for refresing test results
 		JButton btnNewButton = new JButton("Refresh");
-		btnNewButton.addMouseListener(new MouseAdapter() {
+		RefreshResults.setRefreshButton(btnNewButton);
+		/*btnNewButton.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				logger.info("Test results refresh");
 				addRows(table);
 				panel_details.fillCompBox();
+			}
+		});*/
+		btnNewButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				logger.info("Test results refresh");
+				addRows(table);
+				panel_details.fillCompBox();				
 			}
 		});
 		GridBagConstraints c3 = new GridBagConstraints();
