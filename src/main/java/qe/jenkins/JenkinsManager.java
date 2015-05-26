@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import qe.exception.JenkinsException;
-import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 
 /**
  * Utilities for jenkis API invoking.
@@ -44,13 +43,16 @@ public class JenkinsManager {
     /**
      * Type of API we support.
      */
-    private static final String API_TYPE = "api/xml/";
+    private static final String API_TYPE = "/api/xml/";
     /**
      * The extension for the URL to download the artifacts. 
      */
-    private static final String ZIP = "*zip*/tmp.zip";
-    private static final String X_PATH = "xpath=";
-    private static final String WRAPPER = "wrapper=";
+    private static final String ZIP = "/*zip*/tmp.zip";
+    /**
+     * The tree argument.
+     */
+    private static final String TREE= "?tree=";
+    
     /**
      * Private constructor - all methods are static.
      */
@@ -63,7 +65,7 @@ public class JenkinsManager {
      * @throws JenkinsException if an error occurs during fetching an XML document
      */
     public static List<String> getJenkinsViews() throws JenkinsException{
-        String url = addApi(new StringBuilder(JENKINS_URL)).toString();
+        String url = addTree(new StringBuilder(JENKINS_URL), "views[name]").toString();
         Document doc = getDocument(url);
         return JenkinsXMLAPIPUtils.getViews(doc);
     }
@@ -77,11 +79,10 @@ public class JenkinsManager {
      */
     public static List<String> getJenkinsJobs(String view) throws JenkinsException{
         check(view, "View cannot be empty.");
-        String url = addApi(
+        String url = addTree(
                 new StringBuilder(JENKINS_URL)
                     .append("view/")
-                    .append(view)
-                    .append("/"))
+                    .append(view), "jobs[name]")
                 .toString();
         Document doc = getDocument(url);
         return JenkinsXMLAPIPUtils.getJobs(doc);
@@ -98,13 +99,12 @@ public class JenkinsManager {
     public static JenkinsJob getJenkinsJob(String view, String job) throws JenkinsException{
         check(view, "View cannot be empty.");
         check(job, "Job cannot be empty.");
-        String url = addApi(
+        String url = addTree(
                 new StringBuilder(JENKINS_URL)
                 .append("view/")
                 .append(view)
                 .append("/job/")
-                .append(job)
-                .append("/"))
+                .append(job), "url,name,builds[number,url,runs[building,result,url]]")
             .toString();
         Document doc = getDocument(url);
         return JenkinsXMLAPIPUtils.getJob(doc);
@@ -130,35 +130,12 @@ public class JenkinsManager {
         StringBuilder urlBuilder = new StringBuilder(url)
                 .append("/artifact/");
         if(artifactsPath != null && !artifactsPath.isEmpty()){
-            urlBuilder.append(artifactsPath)
-                .append("/");
+            urlBuilder.append(artifactsPath);
         }
         addZip(urlBuilder);
         downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);        
     }
     
-    public static void getStatusOfActiveConfiguration(JenkinsActiveConfiguration jac) throws JenkinsException{
-        String url = jac.getUrl();
-        if(url == null || url.isEmpty()){
-            throw new JenkinsException("URL of active configuration cannot be empty: " + url);
-        }
-        StringBuilder buildingBuilder = new StringBuilder(url);
-        addApi(buildingBuilder);
-        addXPath(buildingBuilder, "/matrixRun/building", "tmp");
-        Document buildingDoc = getDocument(buildingBuilder.toString());
-        boolean isBulding = JenkinsXMLAPIPUtils.getBuildingStatus(buildingDoc);
-        if(isBulding){
-            jac.setStatus(JenkinsStatus.BUILDING);
-        } else {
-            StringBuilder resultBuilder = new StringBuilder(url);
-            addApi(resultBuilder);
-            addXPath(resultBuilder, "/matrixRun/result", "tmp");
-            Document resultDoc = JenkinsManager.getDocument(resultBuilder.toString());
-            JenkinsStatus st = JenkinsXMLAPIPUtils.getStatus(resultDoc);
-            jac.setStatus(st);
-        }
-        LOGGER.debug("Status of active configuration {}", jac.getStatus());
-    }
     
     /**
      * Downloads file from URL and stores it to local file system in file {@code destFile}. 
@@ -171,7 +148,7 @@ public class JenkinsManager {
      * @throws JenkinsException if specified file is not found
      * @throws IOException download or storing to local file system
      */
-    static void downloadFile(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound) throws JenkinsException, IOException{
+    private static void downloadFile(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound) throws JenkinsException, IOException{
         LOGGER.info("Downloading file: {} to {}.", url, destFile);
         URL u = new URL(url);
         URLConnection con = u.openConnection();
@@ -256,19 +233,8 @@ public class JenkinsManager {
      * @return
      * @throws JenkinsException
      */
-    static Document getDocument(String url) throws JenkinsException{
+    private static Document getDocument(String url) throws JenkinsException{
         return fetchDocument(url, Connection.Method.GET);
-    }
-    
-    /**
-     * Returns document from URL using HTTP POST method.
-     * 
-     * @param url
-     * @return
-     * @throws JenkinsException
-     */
-    static Document postDocument(String url) throws JenkinsException{
-        return fetchDocument(url, Connection.Method.POST);
     }
     
     /**
@@ -285,8 +251,8 @@ public class JenkinsManager {
             LOGGER.info("Parsing response.");
             return res.parse();
         } catch (IOException t){
-            String message = "Exception while parsing document.";
-            LOGGER.error(message, t);
+            String message = "Exception while parsing document: " + t.getMessage();
+            LOGGER.error(message);
             throw new JenkinsException(message, t);
         }
     }
@@ -302,28 +268,31 @@ public class JenkinsManager {
     private static Response fetchResponse(String url, Method method) throws JenkinsException{
         try{
             LOGGER.info("Fetching response from {} using HTTP method {}", url, method);
-            Response res = Jsoup.connect(url)
-                    .parser(Parser.xmlParser())
-                    .method(method)
-                    .maxBodySize(0)
-                    .timeout(20_000)
-                    .execute();
+            Response res = null;
+            IOException lastEx = null;
+            for(int i = 1; i <= 3; i++){
+                try{
+                    res = Jsoup.connect(url)
+                            .parser(Parser.xmlParser())
+                            .method(method)
+                            .maxBodySize(0)
+                            .timeout(20_000)
+                            .execute();
+                } catch (IOException ex){
+                    lastEx = ex;
+                    LOGGER.warn("Exception while fetching document [try: " + i + "]: " + ex.getMessage());
+                }
+            }   
+            if(res == null){
+                throw lastEx;
+            }
             LOGGER.info("Response content type: {}", res.contentType());
             return res;
         } catch (Throwable t){
-            String message = "Throwable while fetching document.";
-            LOGGER.error(message, t);
+            String message = "Throwable while fetching document: " + t.getMessage();
+            LOGGER.error(message);
             throw new JenkinsException(message, t);
         }
-    }
-    
-    /**
-     * Adds supported API to builder (expects that builder contains the URL).
-     * @param b
-     * @return
-     */
-    static StringBuilder addApi(StringBuilder b){
-        return b.append(API_TYPE);
     }
     
     /**
@@ -331,23 +300,22 @@ public class JenkinsManager {
      * @param b
      * @return
      */
-    static StringBuilder addZip(StringBuilder b){
+    private static StringBuilder addZip(StringBuilder b){
         return b.append(ZIP);
     }
     
-    static StringBuilder addXPath(StringBuilder b, String xPath, String wrapper){
-        if(xPath == null){
+    /**
+     * Adds tree URL argument
+     * 
+     * @param b the StringBuilder
+     * @param treePath path for tree argument 
+     * @return {@code <builder>/api/xml/?tree=<treePath>}
+     */
+    private static StringBuilder addTree(StringBuilder b, String treePath){
+        if(treePath == null){
             return b;
         }
-        b.append("?")
-            .append(X_PATH)
-            .append(xPath);
-        if(wrapper == null){
-            return b;
-        }
-        return b.append("&")
-            .append(WRAPPER)
-            .append(wrapper);
+        return b.append(API_TYPE).append(TREE).append(treePath);
     }
     
     /**

@@ -18,7 +18,7 @@ import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
  * @author jdurani
  *
  */
-public class JenkinsXMLAPIPUtils {
+class JenkinsXMLAPIPUtils {
    
     /**
      * The logger.
@@ -36,7 +36,7 @@ public class JenkinsXMLAPIPUtils {
      * @param doc
      * @return
      */
-    public static List<String> getViews(Document doc){
+    static List<String> getViews(Document doc){
         LOGGER.debug("Getting jenkins view names from document {}.", doc.toString());
         return getTextOfElements(doc, "view > name");
     }
@@ -47,7 +47,7 @@ public class JenkinsXMLAPIPUtils {
      * @param doc
      * @return
      */
-    public static List<String> getJobs(Document doc){
+    static List<String> getJobs(Document doc){
         LOGGER.debug("Getting jenkins job names from document {}.", doc.toString());
         return getTextOfElements(doc, "job > name");
     }
@@ -59,35 +59,27 @@ public class JenkinsXMLAPIPUtils {
      * @return
      * @throws JenkinsException
      */
-    public static JenkinsJob getJob(Document doc) throws JenkinsException{
+    static JenkinsJob getJob(Document doc) throws JenkinsException{
         LOGGER.debug("Getting jenkins job from document {}.", doc.toString());
         //we support only matrix projects
-        List<String> jobUrls = getTextOfElements(doc, "matrixProject > url");
-        System.out.println("Job urls: " + jobUrls.size());
-        if(jobUrls.isEmpty()){
-            throw new JenkinsException("Document contains no url for jenkins job.");
-        }
-        List<String> jobNames = getTextOfElements(doc, "matrixProject > name");
-        System.out.println("Job names: " + jobNames.size());
-        if(jobNames.isEmpty()){
-            throw new JenkinsException("Document contains no name for jenkins job.");
-        }
         JenkinsJob job = new JenkinsJob();
-        String jobUrl = jobUrls.get(0);
+        String jobUrl = getTextOfElements(doc, "matrixProject > url").get(0);
+        String jobName = getTextOfElements(doc, "matrixProject > name").get(0);
         job.setUrl(jobUrl);
-        job.setName(jobNames.get(0));
+        job.setName(jobName);
         Elements buildElements = doc.select("matrixProject > build");
         for(Element buildElem : buildElements){
             String number = buildElem.select("number").get(0).text();
             String buildUrl = buildElem.select("url").get(0).text();
-            Document buildDoc = JenkinsManager.getDocument(JenkinsManager.addApi(new StringBuilder(buildUrl)).toString());
-            List<String> runs = getTextOfElements(buildDoc, "matrixBuild > run > url");
+            
+            Elements runs = buildElem.select("run");
             JenkinsBuild build = new JenkinsBuild();
             build.setBuildNumber(number);
             build.setUrl(buildUrl);
             boolean first = true;
-            for(String run : runs){
-                String nodeId = run.substring(jobUrl.length(), run.length() - number.length() - 2);
+            for(Element run : runs){
+                String runURL = run.select("url").get(0).ownText();
+                String nodeId = runURL.substring(jobUrl.length(), runURL.length() - number.length() - 2);
                 int idx1 = nodeId.indexOf('=');
                 int idx2 = nodeId.lastIndexOf('=');
                 if(idx1 == -1 || idx2 == idx1){
@@ -107,9 +99,15 @@ public class JenkinsXMLAPIPUtils {
                     build.setyLabel(yLabel);
                 }
                 JenkinsActiveConfiguration activeConfiguration = new JenkinsActiveConfiguration();
-                activeConfiguration.setUrl(run);
+                activeConfiguration.setUrl(runURL);
                 activeConfiguration.setxValue(xValue);
                 activeConfiguration.setyValue(yValue);
+                
+                if(Boolean.valueOf(run.select("building").get(0).ownText())){
+                    activeConfiguration.setStatus(JenkinsStatus.BUILDING);
+                } else {
+                    activeConfiguration.setStatus(JenkinsStatus.valueOf(run.select("result").get(0).ownText()));
+                }
                 try{
                     build.addActiveConfiguration(activeConfiguration);
                 } catch (JenkinsException ex){
@@ -121,28 +119,6 @@ public class JenkinsXMLAPIPUtils {
         return job;
     }
     
-    public static boolean getBuildingStatus(Document doc){
-        Element root = doc.child(0);
-        String bool; 
-        if(root.tagName().equals("building")){
-            bool = getTextOfElements(doc, "building").get(0);
-        } else {
-            bool = getTextOfElements(doc, root.tagName() + " > building").get(0);
-        }
-        return Boolean.valueOf(bool);
-    }
-    
-    public static JenkinsStatus getStatus(Document doc){
-        Element root = doc.child(0);
-        String status;
-        if(root.tagName().equals("result")){
-            status = getTextOfElements(doc, "result").get(0);
-        } else {
-            status = getTextOfElements(doc, root.tagName() + " > result").get(0);
-        }
-        return JenkinsStatus.valueOf(status);
-    }
-    
     /**
      * Returns list of texts of tags in document {@code doc} that fits {@code cssQuery}.
      * 
@@ -150,12 +126,10 @@ public class JenkinsXMLAPIPUtils {
      * @param cssQuery
      * @return
      */
-    private static List<String> getTextOfElements(Document doc, String cssQuery){
+    private static List<String> getTextOfElements(Element doc, String cssQuery){
         List<String> texts = new ArrayList<>();
-        Elements names = doc.select(cssQuery);
-        for(int i = 0; i < names.size(); i++){
-            Element name = names.get(i);
-            texts.add(name.text());
+        for(Element e : doc.select(cssQuery)){
+            texts.add(e.ownText());
         }
         return texts;
     }

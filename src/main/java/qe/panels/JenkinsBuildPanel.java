@@ -1,5 +1,7 @@
 package qe.panels;
 
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import javax.swing.JRadioButton;
 import javax.swing.border.EtchedBorder;
 
 import qe.jenkins.JenkinsActiveConfiguration;
+import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 import qe.jenkins.JenkinsBuild;
 import qe.jenkins.JenkinsJob;
 import qe.utils.Utils;
@@ -32,6 +35,12 @@ import qe.utils.Utils;
 public class JenkinsBuildPanel extends JPanel {
 
     private static final long serialVersionUID = 3414694028944335467L;
+    
+    private static final Color SUCCESS_COLOR = new Color(100,149,237);
+    private static final Color FAILURE_COLOR = new Color(220,20,60);
+    private static final Color UNSTABLE_COLOR = new Color(218,165,32);
+    private static final Color BUILDING_COLOR = Color.WHITE;
+    private static final Color DEFAULT_COLOR = new JPanel().getBackground();
 
     /**
      * Name of job
@@ -76,6 +85,7 @@ public class JenkinsBuildPanel extends JPanel {
         for(Enumeration<AbstractButton> e = matrix.buttonGroup.getElements(); e.hasMoreElements(); ){
             matrix.buttonGroup.remove(e.nextElement());
         }
+        matrix.matrix.removeAll();
         JRadioButton[] buildButton = new JRadioButton[job.getBuilds().size()];
         int i = 0;
         List<JenkinsBuild> builds = new ArrayList<>(job.getBuilds());
@@ -149,13 +159,12 @@ public class JenkinsBuildPanel extends JPanel {
             components[i+1][0] = new JLabel(yVals.get(i));
         }
         for(JenkinsActiveConfiguration jac : jacSet){
-            String xv = jac.getxValue();
-            String yv = jac.getyValue();
-            int xPos = xVals.indexOf(xv);
-            int yPos = yVals.indexOf(yv);
-            RadioButtonWithProps rbwp = new RadioButtonWithProps(jac.getUrl(), xv, yv);
+            int xPos = xVals.indexOf(jac.getxValue());
+            int yPos = yVals.indexOf(jac.getyValue());
+            RadioButtonWithJAC rbwp = new RadioButtonWithJAC(jac);
             JPanel p = new JPanel();
             p.add(rbwp);
+            rbwp.updateStatus();
             holder.buttonGroup.add(rbwp);
             components[yPos + 1][xPos + 1] = p;
         }
@@ -171,6 +180,12 @@ public class JenkinsBuildPanel extends JPanel {
         return holder;
     }
 
+    public void updateStatus(){
+        for(Enumeration<AbstractButton> e = matrix.buttonGroup.getElements(); e.hasMoreElements(); ){
+            ((RadioButtonWithJAC)e.nextElement()).updateStatus();
+        }
+    }
+    
     /**
      * Replaces actual matrix of active configurations {@link #matrix} 
      * with new matrix {@code newMatrix}.
@@ -199,7 +214,7 @@ public class JenkinsBuildPanel extends JPanel {
      * @return
      */
     public String getSelectedXValue(){
-        RadioButtonWithProps b = (RadioButtonWithProps)getSelectedButton(matrix.buttonGroup);
+        RadioButtonWithJAC b = (RadioButtonWithJAC)getSelectedButton(matrix.buttonGroup);
         return b == null ? null : b.xValue;
     }
 
@@ -209,7 +224,7 @@ public class JenkinsBuildPanel extends JPanel {
      * @return
      */
     public String getSelectedYValue(){
-        RadioButtonWithProps b = (RadioButtonWithProps)getSelectedButton(matrix.buttonGroup);
+        RadioButtonWithJAC b = (RadioButtonWithJAC)getSelectedButton(matrix.buttonGroup);
         return b == null ? null : b.yValue;
     }
 
@@ -219,7 +234,7 @@ public class JenkinsBuildPanel extends JPanel {
      * @return
      */
     public String getUrlOfSelectedNode(){
-        RadioButtonWithProps b = (RadioButtonWithProps)getSelectedButton(matrix.buttonGroup);
+        RadioButtonWithJAC b = (RadioButtonWithJAC)getSelectedButton(matrix.buttonGroup);
         return b == null ? null : b.url;
     }
     
@@ -246,16 +261,46 @@ public class JenkinsBuildPanel extends JPanel {
      *
      */
     @SuppressWarnings("serial")
-    private class RadioButtonWithProps extends JRadioButton{
+    private class RadioButtonWithJAC extends JRadioButton{
+        
         private final String url;
         private final String xValue;
         private final String yValue;
+        private final JenkinsActiveConfiguration jac;
         
-        public RadioButtonWithProps(String url, String xValue, String yValue) {
+        public RadioButtonWithJAC(JenkinsActiveConfiguration jac) {
             super();
-            this.url = url;
-            this.xValue = xValue;
-            this.yValue = yValue;
+            this.jac = jac;
+            this.url = jac.getUrl();
+            this.xValue = jac.getxValue();
+            this.yValue = jac.getyValue();
+        }
+        
+        private void updateStatus(){
+            Utils.setToolTipText(this, jac.getStatus().name());
+            Color c = getColor(jac.getStatus());
+            setBackground(c);
+            Component parent = getParent();
+            if(parent != null){
+                parent.setBackground(c);
+            }
+        }
+        
+        private Color getColor(JenkinsStatus status){
+            switch(status){
+                case SUCCESS:
+                    return SUCCESS_COLOR;
+                case FAILURE:
+                    return FAILURE_COLOR;
+                case UNSTABLE:
+                    return UNSTABLE_COLOR;
+                case BUILDING:
+                    return BUILDING_COLOR;
+                case ABORTED:
+                case NONE:
+                default:
+                    return DEFAULT_COLOR;
+            }
         }
     }
     

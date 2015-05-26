@@ -58,7 +58,6 @@ import qe.utils.Utils;
  * This class represents a {@link JPanel} for jenkins.
  * 
  * @author jdurani
- * TODO - show status of active configuration
  */
 public class JenkinsPanel extends JPanel {
 
@@ -84,6 +83,7 @@ public class JenkinsPanel extends JPanel {
     private JLabel jobNameLabel;
     private JButton selectJobButton;
     private JButton showJobButton;
+    
     private JButton showResults;
     
     private JenkinsBuildPanel jenkinsBuildPanel;
@@ -159,9 +159,11 @@ public class JenkinsPanel extends JPanel {
         gl.setVerticalGroup(gl.createParallelGroup()
             .addGroup(gl.createSequentialGroup()
                 .addComponent(showJobButton)
+                .addGap(25)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
                 .addComponent(downloadCustomArtifactsOfNode)
+                .addGap(25)
                 .addComponent(showResults))
             .addGroup(gl.createSequentialGroup()
                 .addGroup(gl.createSequentialGroup()
@@ -186,7 +188,8 @@ public class JenkinsPanel extends JPanel {
         
         gl.linkSize(SwingConstants.VERTICAL, jobName, viewName, downloadDir);
         gl.linkSize(selectJobButton, selectViewButton, selectDownloadDirButton);
-        gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode, downloadCustomArtifactsOfNode,showResults);
+        gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode,
+                downloadCustomArtifactsOfNode, showResults);
         
         setLayout(gl);
     }
@@ -271,7 +274,7 @@ public class JenkinsPanel extends JPanel {
         downloadCustomArtifactsOfNode.addActionListener(new DownloadCustomArtifactsOfNodeActionListener());
         
         showResults = new JButton("Show results");
-        showResults.addActionListener(new showResultsActionListener());
+        showResults.addActionListener(new ShowResultsActionListener());
     }
 
     /**
@@ -350,17 +353,53 @@ public class JenkinsPanel extends JPanel {
     }
     
     private void startSelectWorker(int type){
-        if(selectJobViewWorker != null){
-            JOptionPane.showMessageDialog(getWindowAncestor(),
-                    "Select action already in progress.",
-                    "Select Job/View",
-                    JOptionPane.WARNING_MESSAGE);
+        if(!notRunning(selectJobViewWorker)){
             return;
         }
         selectJobViewWorker = new SelectJobViewWorker(type);
         selectJobViewWorker.execute();
     }
+    
+    private <T,K> boolean notRunning(SwingWorker<T, K> w){
+        if(w != null){
+            Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.WARN, 
+                    "Action already in progress.", null);
+            return false;
+        }
+        return true;
+    }
+    
 
+    private boolean needJenkinJob(){
+        if(jenkinsJob == null){
+            Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
+                    "No jenkis job. Use \"Show selected job\" button.",
+                    null);
+            return false;
+        }
+        return true;
+    }
+    
+    private boolean needBuildNumber(){
+        if(jenkinsBuildPanel.getSelectedBuildNumber() == null){
+            Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
+                    "No build number selected.",
+                    null);
+            return false;
+        }
+        return true;
+    }
+    
+    private boolean needNode(){
+        if(jenkinsBuildPanel.getUrlOfSelectedNode() == null){
+            Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
+                    "No node selected.",
+                    null);
+            return false;
+        }
+        return true;
+    }
+    
     /**
      * Gets and shows list of views or jobs from jenkins.
      * 
@@ -415,7 +454,8 @@ public class JenkinsPanel extends JPanel {
         private void showDialog(List<String> options){
             LOGGER.debug("Options to select: {}", options);
             if(options == null || options.isEmpty()){
-                JOptionPane.showMessageDialog(getWindowAncestor(), "Nothing to select.", "Select", JOptionPane.INFORMATION_MESSAGE);
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
+                        "Nothing to select.", null);
                 return;
             }
             
@@ -437,7 +477,8 @@ public class JenkinsPanel extends JPanel {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if(list.getSelectedIndex() == -1){
-                        JOptionPane.showMessageDialog(getWindowAncestor(), "No item selected.", "Select", JOptionPane.INFORMATION_MESSAGE);
+                        Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
+                                "No item selected.", null);
                     } else {
                         String selectedObject = list.getSelectedValue();
                         if(type == JOB){
@@ -490,11 +531,7 @@ public class JenkinsPanel extends JPanel {
     private class ShowJobActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(showJobWorker != null){
-                JOptionPane.showMessageDialog(getWindowAncestor(),
-                        "Show job action already in progress.",
-                        "Show Job",
-                        JOptionPane.WARNING_MESSAGE);
+            if(!notRunning(showJobWorker)){
                 return;
             }
             showJobWorker = new ShowJobWorker();
@@ -544,32 +581,21 @@ public class JenkinsPanel extends JPanel {
      * @return
      */
     private boolean checkRequiredJenkinsSettingsBeforeDownload(){
-        if(downloadArtifactsWorker != null){
-            JOptionPane.showMessageDialog(getWindowAncestor(),
-                    "Download action already in progress.",
-                    "Download",
-                    JOptionPane.WARNING_MESSAGE);
+        if(!notRunning(downloadArtifactsWorker)){
             return false;
         }
-        
-        if(jenkinsJob == null){
-            JOptionPane.showMessageDialog(getWindowAncestor(),
-                    "No jenkis job. Use \"Show selected job\" button.",
-                    "Jenkins job", JOptionPane.INFORMATION_MESSAGE);
+        if(!needJenkinJob()){
             return false;
         }
-        if(jenkinsBuildPanel.getSelectedBuildNumber() == null){
-            JOptionPane.showMessageDialog(getWindowAncestor(),
-                    "No build number selected.",
-                    "Build number", JOptionPane.INFORMATION_MESSAGE);
+        if(!needBuildNumber()){
             return false;
         }
         File downloadDirFile = new File(downloadDir.getText());
         if(downloadDirFile.exists()){
             if(!downloadDirFile.isDirectory()){
-                JOptionPane.showMessageDialog(getWindowAncestor(),
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.WARN,
                         "Download directory is not a directory.",
-                        "Download directory", JOptionPane.INFORMATION_MESSAGE);
+                        null);
                 return false;
             }
             File[] dirContent = downloadDirFile.listFiles();
@@ -601,10 +627,7 @@ public class JenkinsPanel extends JPanel {
             if(!checkRequiredJenkinsSettingsBeforeDownload()){
                 return;
             }
-            if(jenkinsBuildPanel.getUrlOfSelectedNode() == null){
-                JOptionPane.showMessageDialog(getWindowAncestor(),
-                        "No node selected.",
-                        "Node", JOptionPane.INFORMATION_MESSAGE);
+            if(!needNode()){
                 return;
             }
             String destFile = "1.zip";
@@ -621,6 +644,68 @@ public class JenkinsPanel extends JPanel {
             
             List<Properties> props = new ArrayList<>();
             props.add(prop);
+            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
+            downloadArtifactsWorker.execute();
+        }
+    }
+
+    /**
+     * Downloads all artifacts of build.
+     * 
+     * @author jdurani
+     *
+     */
+    private class DownloadAllArtifactsOfBuildActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(!checkRequiredJenkinsSettingsBeforeDownload()){
+                return;
+            }
+            Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
+            JenkinsBuild actualBuild = null;
+            String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
+            for(JenkinsBuild b : builds){
+                if(b.getBuildNumber().equals(sbn)){
+                    actualBuild = b;
+                    break;
+                }
+            }
+            List<Properties> props = new ArrayList<>();
+            String basePath = downloadDir.getText() + File.separator
+                    + jenkinsBuildPanel.getJobName() + File.separator
+                    + actualBuild.getBuildNumber();
+            int i = 0;
+            for(JenkinsActiveConfiguration jac : actualBuild.getActiveConfigurations()){
+                File downloadDirFile = new File(basePath,
+                        jac.getxValue() + File.separator + jac.getyValue());
+                Properties prop = new Properties();
+                prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
+                prop.put(DownloadArtifactsWorker.FILE, (i++) + ".zip");
+                prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
+                prop.put(DownloadArtifactsWorker.FAIL, false);
+                props.add(prop);
+            }
+            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
+            downloadArtifactsWorker.execute();
+        }
+    }
+    
+    /**
+     * Downloads selected artifacts of node (active configuration).
+     * 
+     * @author jdurani
+     *
+     */
+    private class DownloadCustomArtifactsOfNodeActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(!checkRequiredJenkinsSettingsBeforeDownload()){
+                return;
+            }
+            // TODO fill properties
+            
+            List<Properties> props = new ArrayList<>();
+            
             downloadArtifactsWorker = new DownloadArtifactsWorker(props);
             downloadArtifactsWorker.execute();
         }
@@ -715,19 +800,22 @@ public class JenkinsPanel extends JPanel {
         }
     }
 
-    /**
-     * Downloads all artifacts of build.
-     * 
-     * @author jdurani
-     *
-     */
-    private class DownloadAllArtifactsOfBuildActionListener implements ActionListener{
+    
+    private class ShowResultsActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload()){
-                return;
+            System.out.println("asdfasfasf");
+        	LOGGER.info("Showing test results from Jenkins");
+        	if(!needJenkinJob()){
+    	        return;
+	        }
+        	if(!needBuildNumber()){
+        	    return;
             }
-            Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
+        	LOGGER.info("Vybrany run jex "+ jenkinsBuildPanel.getSelectedXValue());
+        	LOGGER.info("Vybrany run jey "+ jenkinsBuildPanel.getSelectedYValue());
+        	LOGGER.info("Vybrany run jeurl "+ jenkinsBuildPanel.getUrlOfSelectedNode());
+        	Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
             JenkinsBuild actualBuild = null;
             String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
             for(JenkinsBuild b : builds){
@@ -736,63 +824,18 @@ public class JenkinsPanel extends JPanel {
                     break;
                 }
             }
-            List<Properties> props = new ArrayList<>();
-            String basePath = downloadDir.getText() + File.separator
-                    + jenkinsBuildPanel.getJobName() + File.separator
-                    + actualBuild.getBuildNumber();
-            int i = 0;
-            for(JenkinsActiveConfiguration jac : actualBuild.getActiveConfigurations()){
-                File downloadDirFile = new File(basePath,
-                        jac.getxValue() + File.separator + jac.getyValue());
-                Properties prop = new Properties();
-                prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
-                prop.put(DownloadArtifactsWorker.FILE, (i++) + ".zip");
-                prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
-                prop.put(DownloadArtifactsWorker.FAIL, false);
-                props.add(prop);
+            if(jenkinsBuildPanel.getSelectedXValue() == null || jenkinsBuildPanel.getSelectedYValue()==null){
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No build run is selected",null);
+                return;
             }
-            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
-            downloadArtifactsWorker.execute();
-        }
-    }
-
-    private class showResultsActionListener implements ActionListener{
-        @Override
-        public void actionPerformed(ActionEvent e) {
-        	System.out.println("asdfasfasf");
-        	LOGGER.info("Showing test results from Jenkins");   
-        	 if(jenkinsJob==null){
-        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No jenkis job. Use \"Show selected job\" button.",null);
-        	return;
-        	 }     
-        	 if(jenkinsBuildPanel.getSelectedBuildNumber() == null){
-        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR," No build number selected",null);
-                 return;
-             }
-        	 LOGGER.info("Vybrany run jex "+ jenkinsBuildPanel.getSelectedXValue());
-        	 LOGGER.info("Vybrany run jey "+ jenkinsBuildPanel.getSelectedYValue());
-        	 LOGGER.info("Vybrany run jeurl "+ jenkinsBuildPanel.getUrlOfSelectedNode());
-        	 Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
-             JenkinsBuild actualBuild = null;
-             String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
-             for(JenkinsBuild b : builds){
-                 if(b.getBuildNumber().equals(sbn)){
-                     actualBuild = b;
-                     break;
-                 }
-             }
-             if(jenkinsBuildPanel.getSelectedXValue() == null || jenkinsBuildPanel.getSelectedYValue()==null){
-            	 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No build run is selected",null);
-            	 return;
-             }
-        	 String basePath = downloadDir.getText() + File.separator
-                     + jenkinsBuildPanel.getJobName() + File.separator
-                     + actualBuild.getBuildNumber();
+        	String basePath = downloadDir.getText() + File.separator
+        	        + jenkinsBuildPanel.getJobName() + File.separator
+                    + actualBuild.getBuildNumber();
         	File jenkinsResults = new File(basePath,jenkinsBuildPanel.getSelectedXValue() + File.separator + jenkinsBuildPanel.getSelectedYValue());
         	LOGGER.debug("Searching jenkins results at "+jenkinsResults.getAbsolutePath());
         	File summaryResults=FileLoader.fullTextSearch(jenkinsResults, "Summary_totals.txt");
         	if(summaryResults ==null){
-        		 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No test results have been found at the location:\n"+jenkinsResults.getAbsolutePath()+"\nYou must download the results before showing them.",null);
+        	    Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No test results have been found at the location:\n"+jenkinsResults.getAbsolutePath()+"\nYou must download the results before showing them.",null);
         	return;
         	}
         	Settings.getInstance().setPathToTestResults(summaryResults.getParent());
@@ -807,27 +850,6 @@ public class JenkinsPanel extends JPanel {
         }
     }
     
-    /**
-     * Downloads selected artifacts of node (active configuration).
-     * 
-     * @author jdurani
-     *
-     */
-    private class DownloadCustomArtifactsOfNodeActionListener implements ActionListener{
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload()){
-                return;
-            }
-            // TODO fill properties
-
-            List<Properties> props = new ArrayList<>();
-            
-            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
-            downloadArtifactsWorker.execute();
-        }
-    }
-
     /**
      * Download publisher that shows download status in status panel.
      * 

@@ -7,8 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import javax.swing.JButton;
-
 /**
  * This singleton contains configuration properties of the application
  * 
@@ -451,11 +449,15 @@ public class Settings {
 	 * Adds property key-value to properties.
 	 * 
 	 * @param key
-	 * @param value
+	 * @param newValue
 	 */
-	private void addToProperties(Keys key, String value){
-	    properties.setProperty(key.key, value == null ? "" : value);
-	    saveSettings();
+	private void addToProperties(Keys key, String newValue){
+	    String oldValue = properties.getProperty(key.key);
+	    boolean isSame = oldValue == null ? newValue == null : oldValue.equals(newValue);
+	    if(!isSame){
+    	    properties.setProperty(key.key, newValue == null ? "" : newValue);
+    	    saveSettings();
+	    }
 	}
 	
 	/**
