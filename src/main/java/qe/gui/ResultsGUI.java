@@ -15,6 +15,7 @@ import qe.entity.result.ResultGetter;
 import qe.entity.settings.Settings;
 import qe.log.appender.GUIAppender;
 import qe.panels.BQTRunnerPanel;
+import qe.panels.DataPumperPanel;
 import qe.panels.JenkinsPanel;
 import qe.panels.SettingsPanel;
 import qe.utils.Utils;
@@ -100,13 +101,16 @@ public class ResultsGUI {
 		bqtPanel = new BQTRunnerPanel();
 		JenkinsPanel jenkinsPanel = new JenkinsPanel();
 		JScrollPane settingsPane = Utils.getScrollPane(new SettingsPanel());
+		DataPumperPanel dataPumperPanel = new DataPumperPanel();
+		JScrollPane dataPumperPane = Utils.getScrollPane(dataPumperPanel);
 		
 		tabbedPane.addTab("Total Results", null, totalResults.getPanel(), null);
 		tabbedPane.addTab("Results Details", null, details.getPanel(), null);
 		tabbedPane.addTab("BQT Runner", null, bqtPanel, null);
 		tabbedPane.addTab("Jenkins", null, jenkinsPanel, null);
+		tabbedPane.addTab("Data pumper", null, dataPumperPane, null);
 		tabbedPane.addTab("Settings", null, settingsPane, null);
-//		tabbedPane.setSelectedIndex(3);
+		tabbedPane.setSelectedIndex(4);
 		totalResults.initialize();
 		details.initialize();
 		frmBqtTestParser.pack();
