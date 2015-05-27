@@ -1,7 +1,6 @@
 package qe.panels;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -85,8 +84,7 @@ public class BQTRunnerPanel extends JPanel {
 	private JTextPane bqtLogPane;
 	private JScrollPane bqtLogScrollPane;
 	
-	private JLabel status;
-	private JLabel statusLabel;
+	private StatusPanel status;
 	
 	/**
 	 * Creates a new instance.
@@ -109,30 +107,27 @@ public class BQTRunnerPanel extends JPanel {
 		gl.setAutoCreateContainerGaps(true);
 		gl.setAutoCreateGaps(true);
 		gl.setHorizontalGroup(gl.createParallelGroup()
+	        .addComponent(status)
 			.addGroup(gl.createSequentialGroup()
 				.addComponent(resultModesLabel)
 				.addComponent(resultModes, 120, 120, 120))
 			.addGroup(gl.createSequentialGroup()
 				.addComponent(startButton)
-				.addComponent(cancelButton)
-				.addComponent(statusLabel)
-				.addComponent(status))
+				.addComponent(cancelButton))
 			.addComponent(bqtLogScrollPane));
 		
 		int groupsGap = 25;
 		gl.setVerticalGroup(gl.createSequentialGroup()
+	        .addComponent(status)
 			.addGroup(gl.createSequentialGroup()
 				.addGap(groupsGap)
 				.addGroup(gl.createParallelGroup()
 					.addComponent(resultModesLabel)
 					.addComponent(resultModes, 25, 25, 25))
-				.addGap(groupsGap)				
 			.addGap(groupsGap)
 			.addGroup(gl.createParallelGroup(Alignment.CENTER)
 				.addComponent(startButton)
-				.addComponent(cancelButton)
-				.addComponent(statusLabel)
-				.addComponent(status))
+				.addComponent(cancelButton))
 			.addComponent(bqtLogScrollPane, 200, 600, 600)));
 		
 		setLayout(gl);
@@ -142,10 +137,8 @@ public class BQTRunnerPanel extends JPanel {
 	 * Initializes status.
 	 */
 	private void initStatusLabel(){
-		status = new JLabel("NOT RUNNING");
-		status.setFont(status.getFont().deriveFont(Font.BOLD, 20));
-		Utils.setToolTipText(status, "BQT status");
-		statusLabel = new JLabel("Status: ");
+		status = new StatusPanel();
+		status.setStatus("NOT RUNNING");
 	}
 
     /**
@@ -228,16 +221,6 @@ public class BQTRunnerPanel extends JPanel {
 		}
 		
 	}
-	
-	/**
-	 * Sets text and foreground color for status label.
-	 * @param statusText
-	 * @param bg
-	 */
-	private void setStatus(String statusText, Color bg) {
-		status.setText(statusText);
-		status.setForeground(bg);
-	}
 
     /**
      * Returns window ancestor of this panel.
@@ -295,7 +278,7 @@ public class BQTRunnerPanel extends JPanel {
 			Properties props = getProperties();
 			bqtLogPane.setText("");
 			LOGGER.info("Starting BQT with properties: " + props + ".");
-			setStatus("IN PROGRESS", Color.ORANGE); 
+			status.setStatus("IN PROGRESS", Color.ORANGE); 
 			new TestClient().runTest(props);
 			LOGGER.debug("BQT ended.");
 			return null;
@@ -307,24 +290,21 @@ public class BQTRunnerPanel extends JPanel {
 			try{
 				LOGGER.debug("Checking result.");
 				get();
-				setStatus("   DONE   ", Color.GREEN);
+				status.setStatus("DONE", Color.GREEN);
 				LOGGER.debug("Result OK.");
 			} catch (ExecutionException ex){
-				ex.printStackTrace();
 				Utils.showMessageDialog(getWindowAncestor(), Level.WARN,
 						"Task ends with an exception: " + ex.getCause().getMessage() + "."
 								+ System.getProperty("line.separator") + "See log for more details.", ex);
-				setStatus("  FAILED  ", Color.RED);
+				status.setStatus("FAILED", Color.RED);
 			} catch (CancellationException ex){
-				ex.printStackTrace();
 				Utils.showMessageDialog(getWindowAncestor(), Level.INFO,
 						"Task has been cancelled.", ex);
-				setStatus("  FAILED  ", Color.RED);
+				status.setStatus("FAILED", Color.RED);
 			} catch (InterruptedException ex){
-				ex.printStackTrace();
 				Utils.showMessageDialog(getWindowAncestor(), Level.WARN,
 						"Task has been interrupted. See log for more details.", ex);
-				setStatus("  FAILED  ", Color.RED);
+				status.setStatus("FAILED", Color.RED);
 			}
 		}
 		

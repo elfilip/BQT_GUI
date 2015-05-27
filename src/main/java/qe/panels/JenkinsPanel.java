@@ -1,6 +1,5 @@
 package qe.panels;
 
-import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -37,7 +36,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.border.EtchedBorder;
 
 import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
@@ -68,8 +66,7 @@ public class JenkinsPanel extends JPanel {
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(JenkinsPanel.class);
     
-    private JTextField status;
-    private JLabel statusLabel;
+    private StatusPanel status;
     
     private JTextField viewName;
     private JLabel viewNameLabel;
@@ -132,14 +129,12 @@ public class JenkinsPanel extends JPanel {
         gl.setHorizontalGroup(gl.createSequentialGroup()
             .addGroup(gl.createParallelGroup()
                 .addComponent(showJobButton)
+                .addComponent(showResults)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode)
-                .addComponent(showResults))
+                .addComponent(downloadCustomArtifactsOfNode))
             .addGroup(gl.createParallelGroup()
-                .addGroup(gl.createParallelGroup()
-                    .addComponent(statusLabel)
-                    .addComponent(status))
+                .addComponent(status)
                 .addGroup(gl.createParallelGroup()
                     .addComponent(viewNameLabel)
                     .addGroup(gl.createSequentialGroup()
@@ -159,16 +154,13 @@ public class JenkinsPanel extends JPanel {
         gl.setVerticalGroup(gl.createParallelGroup()
             .addGroup(gl.createSequentialGroup()
                 .addComponent(showJobButton)
+                .addComponent(showResults)
                 .addGap(25)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode)
-                .addGap(25)
-                .addComponent(showResults))
+                .addComponent(downloadCustomArtifactsOfNode))
             .addGroup(gl.createSequentialGroup()
-                .addGroup(gl.createSequentialGroup()
-                    .addComponent(statusLabel)
-                    .addComponent(status, 35, 35, 35))
+                .addComponent(status)
                 .addGroup(gl.createSequentialGroup()
                     .addComponent(viewNameLabel)
                     .addGroup(gl.createParallelGroup()
@@ -198,20 +190,7 @@ public class JenkinsPanel extends JPanel {
      * Initializes the status. 
      */
     private void initStatus(){
-        status = new JTextField();
-        status.setEditable(false);
-        status.setFont(status.getFont().deriveFont(Font.BOLD, 20));
-        status.setBorder(new EtchedBorder(EtchedBorder.RAISED));
-        statusLabel = new JLabel("Status");
-    }
-
-    /**
-     * Sets status to status panel.
-     * 
-     * @param status
-     */
-    private void setStatus(String status){
-        this.status.setText(status);
+        status = new StatusPanel();
     }
 
     /**
@@ -419,7 +398,7 @@ public class JenkinsPanel extends JPanel {
         
         @Override
         protected List<String> doInBackground() throws Exception {
-            setStatus("Getting " + (type == JOB ? "jobs..." : "views..."));
+            status.setStatus("Getting " + (type == JOB ? "jobs..." : "views..."));
             if(type == VIEW){
                 return JenkinsManager.getJenkinsViews();
             } else {
@@ -430,7 +409,7 @@ public class JenkinsPanel extends JPanel {
         @Override
         protected void done() {
             try{
-                setStatus("Getting done.");
+                status.setStatus("Getting done.");
                 List<String> names = get();
                 showDialog(names);
             } catch(InterruptedException | ExecutionException | CancellationException ex){
@@ -549,14 +528,14 @@ public class JenkinsPanel extends JPanel {
         @Override
         protected JenkinsJob doInBackground() throws Exception {
             removeJobInfoPanel();
-            setStatus("Getting job...");
+            status.setStatus("Getting job...");
             return JenkinsManager.getJenkinsJob(viewName.getText(), jobName.getText());
         }
         
         @Override
         protected void done() {
             try{
-                setStatus("Getting job done.");
+                status.setStatus("Getting job done.");
                 jenkinsJob = get();
                 updateJobInfoPanel();
             } catch(InterruptedException | ExecutionException | CancellationException ex){
@@ -751,9 +730,9 @@ public class JenkinsPanel extends JPanel {
         @Override
         protected void done() {
             try{
-                setStatus("Downloading done.");
+                status.setStatus("Downloading done.");
                 get();
-                setStatus("Unziping...");
+                status.setStatus("Unziping...");
                 for(Properties p : toDownload){
                     boolean failIfNotFound = Boolean.valueOf(p.getProperty(FAIL));
                     File unzipDir = new File(p.getProperty(UNZIP_FILE));
@@ -764,7 +743,7 @@ public class JenkinsPanel extends JPanel {
                         ZipEntry ze = zis.getNextEntry();
                         while(ze!=null){
                             File newFile = new File(unzipDir, ze.getName());
-                            setStatus("File unzip: " + newFile.getAbsolutePath());
+                            status.setStatus("File unzip: " + newFile.getAbsolutePath());
                             new File(newFile.getParent()).mkdirs();
                             try(FileOutputStream fos = new FileOutputStream(newFile);
                                     BufferedOutputStream bos = new BufferedOutputStream(fos)){       
@@ -784,7 +763,7 @@ public class JenkinsPanel extends JPanel {
                     }
                     zipFile.delete();
                 }
-                setStatus("Unzipping done.");
+                status.setStatus("Unzipping done.");
             } catch(InterruptedException | ExecutionException | CancellationException ex){
                 Throwable t;
                 if(ex instanceof ExecutionException){
@@ -875,7 +854,7 @@ public class JenkinsPanel extends JPanel {
             lastSize = downloaded;
             String rate = getSizeInBytes(downloadedSize * (1000.0 / DEFAULT_PUBLISH_INTERVAL), useIB);
             String downloadedSizeInBytes = getSizeInBytes(downloaded, useIB);
-            setStatus(new StringBuilder(downloadedSizeInBytes)
+            status.setStatus(new StringBuilder(downloadedSizeInBytes)
                     .append(" / ")
                     .append((objectSize < 0 ? "???" : getSizeInBytes((double)objectSize, useIB)))
                     .append("   [at ")
