@@ -58,7 +58,7 @@ public class PanelDetails extends TabbedPanel {
 	private JTextArea textAreaExpectedRest;
 	private JTextArea textAreaActualRes;
 	private TablePanel tableExpectedResult;
-    private TablePanel tableActualResult;
+	private TablePanel tableActualResult;
 	private JScrollPane paneErrorsList;
 	private JTextField txtQueryName;
 	private JTextField txtErrorErrorError;
@@ -80,7 +80,7 @@ public class PanelDetails extends TabbedPanel {
 		txtErrorErrorError = new JTextField();
 		txtQueryName = new JTextField();
 		tableExpectedResult = new TablePanel();
-        tableActualResult = new TablePanel();
+		tableActualResult = new TablePanel();
 	}
 
 	public void initialize() {
@@ -96,15 +96,10 @@ public class PanelDetails extends TabbedPanel {
 		DefaultTableModel errModel = new DefaultTableModel();
 		errModel.setColumnIdentifiers(new Object[] { "Errors" });
 		tableErrorList = new ScrollableTable(errModel);
-//		tableErrorList.setPreferredSize(new Dimension(750, 750));
+		// tableErrorList.setPreferredSize(new Dimension(750, 750));
 		tableErrorList.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		tableErrorList.getSelectionModel().addListSelectionListener(new ListSelectionListener() { // initializes
-																									// expected
-																									// and
-																									// actual
-																									// result
-																									// for
-																									// query
+		tableErrorList.getSelectionModel().addListSelectionListener(new ListSelectionListener() { // initializes expected and actual result for query
+												
 					@Override
 					public void valueChanged(ListSelectionEvent event) {
 						if (tableErrorList.getSelectedRow() > -1) {
@@ -114,15 +109,28 @@ public class PanelDetails extends TabbedPanel {
 								return;
 							}
 							logger.debug("Loading details for query" + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
-							QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(row);
+							//QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
+							QueryFailure f=null;
+							try {
+								f = results.loadFailureDetails((String)tableErrorList.getValueAt(row, 0));
+							} catch (ResultParsingException e) {
+								Utils.showMessageDialog(rootFrame, Level.ERROR, e.getMessage(), e);
+								return;
+							} catch (GUIException e) {
+								Utils.showMessageDialog(rootFrame, Level.ERROR, e.getMessage(), e);
+								return;
+							}
+							if (f == null) {
+								throw new RuntimeException("Internal error: Unable to find failure in the hashtable");
+							}
 							textAreaActualRes.setText(f.getActualResult());
 							textAreaExpectedRest.setText(f.getExpectedResult());
 							txtQueryName.setText(f.getQueryName());
 							txtErrorErrorError.setText(f.getCompareErrors().get(0));
-						    //tables
-						    tableActualResult.parseXML(f.getActualResult());
-						    tableExpectedResult.parseXML(f.getExpectedResult());
-						    tableActualResult.bindCells(tableExpectedResult);
+							// tables
+							tableActualResult.parseXML(f.getActualResult());
+							tableExpectedResult.parseXML(f.getExpectedResult());
+							tableActualResult.bindCells(tableExpectedResult);
 							logger.debug("Details loaded for query " + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
 						}
 					}
@@ -130,7 +138,7 @@ public class PanelDetails extends TabbedPanel {
 
 		// Combobox for selecting test
 		@SuppressWarnings("serial")
-        class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
+		class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
 
 		}
 		comboBoxName = new JComboBox<String>(new Aaa());
@@ -211,7 +219,7 @@ public class PanelDetails extends TabbedPanel {
 					Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select test failure", null);
 					return;
 				}
-				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getSelectedRow());
+				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(),0));
 				ErrorsFrame errFrame = new ErrorsFrame("Errors for " + results.getCurrentTest() + ": " + f.getQueryName());
 				errFrame.initialize().setErrors(f).show();
 			}
@@ -362,74 +370,75 @@ public class PanelDetails extends TabbedPanel {
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
-        
-        final JButton shoAsTable = new JButton("Show as table");
-        shoAsTable.addActionListener(new ActionListener() {
-            boolean isXml = true;
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if(isXml){
-        	        paneExpectedResult.setViewportView(tableExpectedResult);
-        	        paneActualResult.setViewportView(tableActualResult);
-        	        shoAsTable.setText("Show as XML");
-        	        isXml = false;
-                } else {
-                    paneExpectedResult.setViewportView(textAreaExpectedRest);
-                    paneActualResult.setViewportView(textAreaActualRes);
-                    shoAsTable.setText("Show as table");
-                    isXml = true;
-                }
-            }
-        });
-		GridBagConstraints gbc_showAsTable = new GridBagConstraints();
-        gbc_showAsTable.insets = new Insets(0, 0, 5, 5);
-        gbc_showAsTable.gridx = 4;
-        gbc_showAsTable.gridy = 2;
-        gbc_showAsTable.anchor = GridBagConstraints.EAST;
-        panel.add(shoAsTable, gbc_showAsTable);
-	}
-	
-	private void setVerticalAndHorizontalUnitIncrement(int vert, int hor, JScrollPane... panes){
-	    if(panes == null){
-	        return;
-	    }
-	    for(JScrollPane pane : panes){
-	        pane.getVerticalScrollBar().setUnitIncrement(vert);
-	        pane.getHorizontalScrollBar().setUnitIncrement(hor);
-	    }
-	}
-	
-	private void bindScrollPanes(final JScrollPane... panes){
-	    if(panes == null || panes.length == 0){
-	        return;
-	    }
-	    for(JScrollPane pane : panes){
-	        // vertical model
-	        final BoundedRangeModel verticalModel = pane.getVerticalScrollBar().getModel();
-	        verticalModel.addChangeListener(new ChangeListener() {
-                
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    int value = verticalModel.getValue();
-                    for(JScrollPane p : panes){
-                        p.getVerticalScrollBar().setValue(value);
-                    }
-                }
-            });
-            // horizontal model
-            final BoundedRangeModel horizontalModel = pane.getHorizontalScrollBar().getModel();
-            horizontalModel.addChangeListener(new ChangeListener() {
-                
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    int value = horizontalModel.getValue();
-                    for(JScrollPane p : panes){
-                        p.getHorizontalScrollBar().setValue(value);
-                    }
-                }
-            });
 
-	    }
+		final JButton shoAsTable = new JButton("Show as table");
+		shoAsTable.addActionListener(new ActionListener() {
+			boolean isXml = true;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (isXml) {
+					paneExpectedResult.setViewportView(tableExpectedResult);
+					paneActualResult.setViewportView(tableActualResult);
+					shoAsTable.setText("Show as XML");
+					isXml = false;
+				} else {
+					paneExpectedResult.setViewportView(textAreaExpectedRest);
+					paneActualResult.setViewportView(textAreaActualRes);
+					shoAsTable.setText("Show as table");
+					isXml = true;
+				}
+			}
+		});
+		GridBagConstraints gbc_showAsTable = new GridBagConstraints();
+		gbc_showAsTable.insets = new Insets(0, 0, 5, 5);
+		gbc_showAsTable.gridx = 4;
+		gbc_showAsTable.gridy = 2;
+		gbc_showAsTable.anchor = GridBagConstraints.EAST;
+		panel.add(shoAsTable, gbc_showAsTable);
+	}
+
+	private void setVerticalAndHorizontalUnitIncrement(int vert, int hor, JScrollPane... panes) {
+		if (panes == null) {
+			return;
+		}
+		for (JScrollPane pane : panes) {
+			pane.getVerticalScrollBar().setUnitIncrement(vert);
+			pane.getHorizontalScrollBar().setUnitIncrement(hor);
+		}
+	}
+
+	private void bindScrollPanes(final JScrollPane... panes) {
+		if (panes == null || panes.length == 0) {
+			return;
+		}
+		for (JScrollPane pane : panes) {
+			// vertical model
+			final BoundedRangeModel verticalModel = pane.getVerticalScrollBar().getModel();
+			verticalModel.addChangeListener(new ChangeListener() {
+
+				@Override
+				public void stateChanged(ChangeEvent e) {
+					int value = verticalModel.getValue();
+					for (JScrollPane p : panes) {
+						p.getVerticalScrollBar().setValue(value);
+					}
+				}
+			});
+			// horizontal model
+			final BoundedRangeModel horizontalModel = pane.getHorizontalScrollBar().getModel();
+			horizontalModel.addChangeListener(new ChangeListener() {
+
+				@Override
+				public void stateChanged(ChangeEvent e) {
+					int value = horizontalModel.getValue();
+					for (JScrollPane p : panes) {
+						p.getHorizontalScrollBar().setValue(value);
+					}
+				}
+			});
+
+		}
 	}
 
 	/**
@@ -439,23 +448,25 @@ public class PanelDetails extends TabbedPanel {
 	 *            name of the tests
 	 */
 	public void showCompareErrors(String testName) {
+		/*
+		 * ((DefaultTableModel) tableErrorList.getModel()).setRowCount(0); try { results.loadFailuresForTest(testName); } catch (ResultParsingException e) { logger.warn("Errors when parsing files with failures", e); } catch (GUIException e) { Utils.showMessageDialog(rootFrame, Level.INFO, e.getMessage(), e); } results.setCurrentTest(testName); DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel(); TestResult result = results.getResults().get(testName); if (result == null) { Utils.showMessageDialog(rootFrame, Level.ERROR, "Internal Error: Test name doesn't exist: " + testName, null); return; } for (QueryFailure failure : result.getFailures()) { model.addRow(new Object[] { failure.getQuery() }); }
+		 */
+		results.setCurrentTest(testName);
 		((DefaultTableModel) tableErrorList.getModel()).setRowCount(0);
 		try {
-			results.loadFailuresForTest(testName);
+			results.loadFailedQueries();
 		} catch (ResultParsingException e) {
 			logger.warn("Errors when parsing files with failures", e);
-		} catch (GUIException e) {
-			Utils.showMessageDialog(rootFrame, Level.INFO, e.getMessage(), e);
 		}
-		results.setCurrentTest(testName);
+
 		DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel();
 		TestResult result = results.getResults().get(testName);
 		if (result == null) {
 			Utils.showMessageDialog(rootFrame, Level.ERROR, "Internal Error: Test name doesn't exist: " + testName, null);
 			return;
 		}
-		for (QueryFailure failure : result.getFailures()) {
-			model.addRow(new Object[] { failure.getQuery() });
+		for (Entry<String, QueryFailure> failure : result.getFailures().entrySet()) {
+			model.addRow(new Object[] { failure.getKey() });
 		}
 	}
 

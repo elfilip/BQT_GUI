@@ -64,13 +64,11 @@ public class DomParserFailure {
 	 * @throws ResultParsingException
 	 * @throws TransformerException
 	 */
-	public QueryFailure parseCompareErrorFile() throws ResultParsingException, TransformerException {
-		failure.setQuery(getQuery());
+	public QueryFailure parseCompareErrorFile(QueryFailure failure) throws ResultParsingException, TransformerException {
 		failure.setQueryName(getQueryName());
 		failure.setCompareErrors(getFailureMessages());
 		failure.setActualResult(getActualResult());
 		failure.setExpectedResult(getExpectedResult());
-		failure.setFileName(file.getName());
 		return failure;
 	}
 	private String getQueryName() throws ResultParsingException{

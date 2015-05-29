@@ -77,11 +77,11 @@ public class TablePanel extends JPanel {
      * @param xml XML document as string
      */
     public void parseXML(String xml){
-        LOGGER.debug("Parsing xml: {}", xml);
+        LOGGER.trace("Parsing xml: {}", xml);
         this.removeAll();
         try{
             Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
-            LOGGER.debug("Parsed document: {}", doc);
+            LOGGER.trace("Parsed document: {}", doc);
             Elements node = doc.getElementsByTag(TagNames.ACTUAL_QUERY_RESULTS);
             boolean isSet = false;
             if(!node.isEmpty()){
@@ -178,7 +178,7 @@ public class TablePanel extends JPanel {
      * @throws ResultParsingException if the node {@code rootElement} does not have expected form
      */
     private void buildException(Element rootElement) throws ResultParsingException{
-        LOGGER.debug("Root element: " + rootElement);
+        LOGGER.trace("Root element: " + rootElement);
         Elements exceptionType = rootElement.getElementsByTag(TagNames.EXCEPTION_TYPE);
         Elements exceptionMessage = rootElement.getElementsByTag(TagNames.MESSAGE);
         if(exceptionType.isEmpty()){

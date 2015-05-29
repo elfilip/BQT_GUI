@@ -1,6 +1,7 @@
 package qe.entity.result;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Represents result of a test
@@ -15,7 +16,7 @@ public class TestResult {
 	private int numberOfSuccessfulTests = -1;
 	private int numberOfSkippedTests = -1;
 
-	private ArrayList<QueryFailure> failures = new ArrayList<QueryFailure>();
+	private HashMap<String, QueryFailure> failures = new HashMap<String,QueryFailure>();
 	private boolean failuresLoaded = false;
 
 	/**
@@ -59,8 +60,8 @@ public class TestResult {
 	 * Adds details about one query failure
 	 * @param fail failured query details
 	 */
-	public void addFailure(QueryFailure fail) {
-		failures.add(fail);
+	public void addFailure(String key, QueryFailure fail) {
+		failures.put(key, fail);
 	}
 	/**
 	 * Checks whether the query failures have been already loaded for this test
@@ -77,7 +78,7 @@ public class TestResult {
 	 * Returns all query failures as list
 	 * @return list of query failures
 	 */
-	public ArrayList<QueryFailure> getFailures() {
+	public HashMap<String,QueryFailure> getFailures() {
 		return failures;
 	}
 

@@ -2,15 +2,24 @@ package qe.entity.result;
 
 import java.awt.Frame;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import qe.entity.settings.Settings;
 import qe.exception.GUIException;
 import qe.exception.ResultParsingException;
 import qe.parsing.dom.DomParserFailure;
+import qe.parsing.sax.MySAXTerminatorException;
+import qe.parsing.sax.SaxFailureHandler;
 import qe.utils.FileLoader;
 
 /**
@@ -64,41 +73,85 @@ public class ResultGetter {
 	}
 
 	/**
-	 * Loads failures for particular test. Failures are loaded from
-	 * errors_for_COMPARE folder
+	 * Loads failure for particular query. Failure is loaded from errors_for_COMPARE folder
 	 * 
-	 * @param testName
-	 *            name of the test for which failures would be loaded
-	 * @return test results
+	 * 
+	 * @param queryValue
+	 *            text of the query
+	 * @return query failures
 	 * @throws ResultParsingException
 	 * @throws GUIException
 	 */
-	public TestResult loadFailuresForTest(String testName) throws ResultParsingException, GUIException {
-		logger.debug("Loading all failures for test:" + testName);
-		TestResult result = results.get(testName);
+
+	public QueryFailure loadFailureDetails(String queryValue) throws ResultParsingException, GUIException {
+		logger.debug("Loading details for query: " + queryValue);
+		TestResult result = results.get(this.currentTest);
 		StringBuilder errors = new StringBuilder();
 		if (result == null) {
-			throw new ResultParsingException("Internal Error: Unknown test name " + testName);
+			throw new ResultParsingException("Internal Error: Unknown test name " + this.currentTest);
 		}
-		if (result.isFailuresLoaded()) {
-			return result;
+		if (result.isFailuresLoaded() == false) {
+			throw new ResultParsingException("Internal Error: Failures should be already loaded for this query " + queryValue);
+		}
+		QueryFailure fail = result.getFailures().get(queryValue);
+		if (fail == null) {
+			throw new ResultParsingException("Internal Error: This query is unknown " + queryValue);
+		}
+		if (fail.getQueryName() != null) {
+			return fail;
 		} else {
-			File compareErrorsFolder = new File(Settings.getInstance().getPathToTestResults() + "/" + testName + "/" + COMPARE_ERRORS + "/");
+			File compareErrorsFolder = new File(Settings.getInstance().getPathToTestResults() + "/" + this.currentTest + "/" + COMPARE_ERRORS + "/");
 			if (compareErrorsFolder.exists() == false) {
-				return result;
+				throw new ResultParsingException("Can't find compare errors folder " + compareErrorsFolder.getAbsolutePath());
 			}
-			for (File file : FileLoader.getAllFilesInFolder(compareErrorsFolder, ".err")) {
-				try {
-					DomParserFailure parser = new DomParserFailure(file);
-					result.addFailure(parser.parseCompareErrorFile());
-				} catch (Exception e) {
-					errors.append(e.getMessage()).append('\n');
-					logger.warn(e.getMessage());
-				}
+			File file = new File(compareErrorsFolder, fail.getFileName());
+			try {
+				DomParserFailure parser = new DomParserFailure(file);
+				parser.parseCompareErrorFile(fail);
+			} catch (Exception e) {
+				errors.append(e.getMessage()).append('\n');
+				logger.warn(e.getMessage());
 			}
 		}
 		if (errors.length() > 0) {
-			throw new ResultParsingException("Error parsing results: \n" + errors.toString());
+			throw new ResultParsingException("Error parsing result: \n" + errors.toString());
+		}
+		result.setFailuresLoaded(true);
+		return fail;
+	}
+
+	/**
+	 * Loads text of failed queries for current test. QueryFailure objects are partially filled with file name and query value.
+	 * 
+	 * @return Partially filled result for each failed query.
+	 * @throws ResultParsingException
+	 */
+	public TestResult loadFailedQueries() throws ResultParsingException {
+		logger.debug("Loading all failures for test:" + this.currentTest);
+		TestResult result = results.get(this.getCurrentTest());
+
+		File compareErrorsFolder = new File(Settings.getInstance().getPathToTestResults() + "/" + this.getCurrentTest() + "/" + COMPARE_ERRORS + "/");
+		if (compareErrorsFolder.exists() == false) {
+			return result;
+		}
+		if (result == null) {
+			throw new ResultParsingException("Internal Error: Unknown test name " + this.currentTest);
+		}
+		SaxFailureHandler handler = new SaxFailureHandler();
+		for (File file : FileLoader.getAllFilesInFolder(compareErrorsFolder, ".err")) {
+			try {
+				InputStream xmlInput = new FileInputStream(file);
+				SAXParserFactory factory = SAXParserFactory.newInstance();
+				SAXParser saxParser = factory.newSAXParser();
+				saxParser.parse(xmlInput, handler);
+			} catch (MySAXTerminatorException e) {
+				QueryFailure f = new QueryFailure();
+				f.setQuery(handler.getQueryValue());
+				f.setFileName(file.getName());
+				result.addFailure(handler.getQueryValue(), f);
+			} catch (Exception e) {
+				logger.error("Can't parse file:" + file.getAbsolutePath(), e);
+			}
 		}
 		result.setFailuresLoaded(true);
 		return result;

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import qe.entity.result.RefreshResults;
 import qe.entity.result.ResultGetter;
 import qe.entity.result.TestResult;
-import qe.entity.settings.Settings;
 import qe.exception.ResultParsingException;
 import qe.utils.Utils;
 /**
@@ -113,7 +112,7 @@ public class PanelResults extends TabbedPanel {
 			public void actionPerformed(ActionEvent arg0) {
 				logger.info("Test results refresh");
 				addRows(table);
-				panel_details.fillCompBox();				
+				panel_details.fillCompBox();
 			}
 		});
 		GridBagConstraints c3 = new GridBagConstraints();
