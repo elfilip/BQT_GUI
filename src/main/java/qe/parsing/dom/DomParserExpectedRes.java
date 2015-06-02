@@ -23,82 +23,98 @@ import qe.utils.Utils;
 
 /**
  * XML DOM parser for replacing and modifying expected results
+ * 
  * @author felias
  *
  */
 public class DomParserExpectedRes {
 	private static final Logger logger = LoggerFactory.getLogger(DomParserExpectedRes.class);
-	
+
 	File file;
-	Document doc;
+	Document originalResult;
 	private final String EXPECTED_EXCEPTION_ERR = "expectedException";
 	private final String EXPECTED_QUERY_RESULTS_ERR = "expectedQueryResults";
 	private final String EXPECTED_EXCEPTION = "exception";
 	private final String EXPECTED_QUERY_RESULTS = "queryResults";
-	
+	private final String STACK_TRACE = "stackTrace";
+
 	/**
 	 * 
-	 * @param file Path to expected result XML of a query
+	 * @param file
+	 *            Path to expected result XML of a query
 	 * @throws ParserConfigurationException
 	 * @throws SAXException
 	 * @throws IOException
 	 */
-	public DomParserExpectedRes(File file) throws ParserConfigurationException, SAXException, IOException{
+	public DomParserExpectedRes(File file) throws ParserConfigurationException, SAXException, IOException {
 		this.file = file;
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-		doc = dBuilder.parse(file);
+		originalResult = dBuilder.parse(file);
 	}
-	
+
 	/**
 	 * Replaces expected result with content of the parameter
-	 * @param node new expected result
+	 * 
+	 * @param node
+	 *            new expected result
+	 * 
 	 * @throws ResultParsingException
 	 */
-	public void replaceExpectedResult(Node node) throws ResultParsingException{
+	public void replaceExpectedResult(Document expResultDoc) throws ResultParsingException {
 		String elementName;
-		if(node.getNodeName().equals(EXPECTED_EXCEPTION_ERR)){
-			elementName=EXPECTED_EXCEPTION;
-			NodeList list = doc.getElementsByTagName(elementName);
-			if(list.getLength()==0){
-				throw new ResultParsingException("Expected result doesn't contains element "+elementName+": "+file.getAbsolutePath());
+		Node newResult=expResultDoc.getFirstChild();
+		if (newResult.getNodeName().equals(EXPECTED_EXCEPTION_ERR)) {
+			elementName = EXPECTED_EXCEPTION;
+			NodeList stackTrace =expResultDoc.getElementsByTagName(STACK_TRACE); //removing stacktrace element, it shouldn't be in the expected result
+			if(stackTrace.getLength()>0){
+				newResult.removeChild(stackTrace.item(0));
 			}
-			Node imported=doc.importNode(node,true);
-			list.item(0).getParentNode().replaceChild(imported, list.item(0));
-			doc.renameNode(imported, imported.getNamespaceURI(), "exception");
-		}else if(node.getNodeName().equals(EXPECTED_QUERY_RESULTS_ERR)){
-			
-			elementName=EXPECTED_QUERY_RESULTS;
-			NodeList expectedResult=doc.getElementsByTagName(EXPECTED_QUERY_RESULTS);
-			if(expectedResult.getLength()!=1){
-				throw new ResultParsingException("Expected result is malformed: no element "+EXPECTED_QUERY_RESULTS+": "+file.getAbsolutePath());
+			NodeList list = originalResult.getElementsByTagName(elementName);			
+			if (list.getLength() > 0) {
+				Node imported = originalResult.importNode(newResult, true);
+				list.item(0).getParentNode().replaceChild(imported, list.item(0));
+				originalResult.renameNode(imported, imported.getNamespaceURI(), "exception");
+			} else {
+				list = originalResult.getElementsByTagName(EXPECTED_QUERY_RESULTS);
+				if (list.getLength() == 0) {
+					throw new ResultParsingException("Expected result doesn't contains element " + elementName + ": " + file.getAbsolutePath());
+				}
+				Node imported = originalResult.importNode(newResult, true);
+				while (list.item(0).hasChildNodes())
+					list.item(0).removeChild(list.item(0).getFirstChild());
+				list.item(0).appendChild(imported);
+				originalResult.renameNode(imported, imported.getNamespaceURI(), "exception");
 			}
-			NodeList childNodes=expectedResult.item(0).getChildNodes();
+
+		} else if (newResult.getNodeName().equals(EXPECTED_QUERY_RESULTS_ERR)) {
+			elementName = EXPECTED_QUERY_RESULTS;
+			NodeList expectedResult = originalResult.getElementsByTagName(EXPECTED_QUERY_RESULTS);
+			if (expectedResult.getLength() != 1) {
+				throw new ResultParsingException("Expected result is malformed: no element " + EXPECTED_QUERY_RESULTS + ": " + file.getAbsolutePath());
+			}
 			while (expectedResult.item(0).hasChildNodes())
 				expectedResult.item(0).removeChild(expectedResult.item(0).getFirstChild());
-			/*for(int i=0;i<childNodes.getLength();i++){
-			//	if (childNodes.item(i) instanceof Element == false)
-					expectedResult.item(0).removeChild(childNodes.item(i));
-					//  continue;
-			}*/
-			NodeList newExpectedResult =node.getChildNodes();
-			for(int i=0;i<newExpectedResult.getLength();i++){
-				Node importedchild=doc.importNode(newExpectedResult.item(i), true);
+			NodeList newExpectedResult = newResult.getChildNodes();
+			for (int i = 0; i < newExpectedResult.getLength(); i++) {
+				Node importedchild = originalResult.importNode(newExpectedResult.item(i), true);
 				expectedResult.item(0).appendChild(importedchild);
 			}
-		}else{
-			throw new ResultParsingException("Expected result is malformed: no element "+EXPECTED_EXCEPTION_ERR+" or "+EXPECTED_QUERY_RESULTS_ERR);
+		} else {
+			throw new ResultParsingException("Expected result is malformed: no element " + EXPECTED_EXCEPTION_ERR + " or " + EXPECTED_QUERY_RESULTS_ERR);
 		}
 	}
+
 	/**
 	 * Writes modified expected results into a file, overwites the original file
+	 * 
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 * @throws TransformerException
 	 * @throws XPathExpressionException
 	 */
-	public void writeXMLdocument() throws FileNotFoundException, IOException, TransformerException, XPathExpressionException{
-		logger.debug("Writing new expected result into file:"+file.getAbsolutePath());
-		Utils.printDocument(doc, new FileOutputStream(file));
+	public void writeXMLdocument() throws FileNotFoundException, IOException, TransformerException, XPathExpressionException {
+		logger.debug("Writing new expected result into file:" + file.getAbsolutePath());
+		Utils.printDocument(originalResult, new FileOutputStream(file));
 	}
 }

@@ -33,6 +33,7 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import qe.entity.result.QueryFailure;
@@ -276,7 +277,7 @@ public class PanelDetails extends TabbedPanel {
 		btnNewButton_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				File expectedResult = null;
-				Node root;
+				Document root;
 				try {
 					root = DomParserFailure.parseString(textAreaExpectedRest.getText());
 				} catch (Exception e2) {
@@ -285,12 +286,12 @@ public class PanelDetails extends TabbedPanel {
 				}
 				try {
 					File pathtoExpectedResults = FileLoader.getPathToExpectedResults(results.getCurrentTest());
-					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getSelectedRow()).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
+					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
 					if (expectedResult == null) {
 						throw new ResultParsingException("Expected result file can't be found");
 					}
 					DomParserExpectedRes parser = new DomParserExpectedRes(expectedResult);
-					parser.replaceExpectedResult(root.getFirstChild());
+					parser.replaceExpectedResult(root);
 					parser.writeXMLdocument();
 				} catch (Exception e1) {
 					Utils.showMessageDialog(rootFrame, Level.ERROR, "Error when saving expected result:\n" + e1.getMessage(), e1);
@@ -306,13 +307,38 @@ public class PanelDetails extends TabbedPanel {
 		gbc_btnNewButton_1.gridy = 2;
 		panel.add(btnNewButton_1, gbc_btnNewButton_1);
 
-		// Invisible button
+		// Saves expected result, which is in textAreaActualRes into a
+		// proper file in the repository
 		JButton invisible = new JButton("Save Actual Result");
 		invisible.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				logger.info("Not yet implemented");
-
+				File expectedResult = null;
+				Document root;
+				try {
+					StringBuilder sb=new StringBuilder(textAreaActualRes.getText());
+					Utils.replaceAll(sb, "actualQueryResults", "expectedQueryResults");
+					Utils.replaceAll(sb, "actualException", "expectedException");
+					root = DomParserFailure.parseString(sb.toString());
+				} catch (Exception e2) {
+					Utils.showMessageDialog(rootFrame, Level.ERROR, "Error when parsing content of actual result. Please check your modifications.", e2);
+					return;
+				}
+				try {
+					File pathtoExpectedResults = FileLoader.getPathToExpectedResults(results.getCurrentTest());
+					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
+					if (expectedResult == null) {
+						throw new ResultParsingException("Expected result file can't be found");
+					}
+					DomParserExpectedRes parser = new DomParserExpectedRes(expectedResult);
+					parser.replaceExpectedResult(root);
+					parser.writeXMLdocument();
+				} catch (Exception e1) {
+					Utils.showMessageDialog(rootFrame, Level.ERROR, "Error when saving actual result:\n" + e1.getMessage(), e1);
+					return;
+				}
+				Utils.showMessageDialog(rootFrame, Level.INFO, "Actual Result has been saved in:\n" + expectedResult.getAbsolutePath(), null);
+		
 			}
 		});
 		GridBagConstraints gbc_invisible = new GridBagConstraints();

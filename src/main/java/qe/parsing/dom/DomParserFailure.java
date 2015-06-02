@@ -140,7 +140,7 @@ public class DomParserFailure {
         return convertElementToString(list.item(0));
 	}
 	
-	public static Node parseString(String xml) throws ParserConfigurationException, SAXException, IOException{
+	public static Document parseString(String xml) throws ParserConfigurationException, SAXException, IOException{
 		InputSource is = new InputSource();
 		 is.setCharacterStream(new StringReader(xml));
 		 DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
