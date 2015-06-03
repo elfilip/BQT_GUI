@@ -13,11 +13,14 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.Map.Entry;
 
+import javax.swing.AbstractButton;
 import javax.swing.BoundedRangeModel;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
@@ -34,7 +37,6 @@ import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 import qe.entity.result.QueryFailure;
 import qe.entity.result.ResultGetter;
@@ -67,6 +69,8 @@ public class PanelDetails extends TabbedPanel {
 	private JButton errListExtendButton;
 	private JComboBox<String> comboBoxName;
 	private ResultGetter results;
+	private JRadioButton radioButQueries;
+	private  JRadioButton radioButFilenames;
 
 	/**
 	 * 
@@ -95,7 +99,7 @@ public class PanelDetails extends TabbedPanel {
 		// Table for list of errors for one test - parses files with compare
 		// errors
 		DefaultTableModel errModel = new DefaultTableModel();
-		errModel.setColumnIdentifiers(new Object[] { "Errors" });
+		errModel.setColumnIdentifiers(new Object[] { "Errors","Errors" });
 		tableErrorList = new ScrollableTable(errModel);
 		// tableErrorList.setPreferredSize(new Dimension(750, 750));
 		tableErrorList.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
@@ -142,12 +146,57 @@ public class PanelDetails extends TabbedPanel {
 		class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
 
 		}
+		
+
+		//Radio buttons to switch between showing table of queries or filenames
+		radioButQueries = new JRadioButton("Show queries");
+		radioButQueries.setActionCommand("query");
+		radioButQueries.setSelected(true);
+
+	    radioButFilenames = new JRadioButton("Show filenames");
+	    radioButFilenames.setActionCommand("filename");
+
+		ActionListener sliceActionListener = new ActionListener() {
+		      public void actionPerformed(ActionEvent actionEvent) {
+		        AbstractButton radioButton = (AbstractButton) actionEvent.getSource();
+		        if(radioButton.getActionCommand().equals("query")){
+		        	showCompareErrors(results.getCurrentTest(),1);
+		        }else if(radioButton.getActionCommand().equals("filename")){
+		        	showCompareErrors(results.getCurrentTest(),0);
+		        }
+		      }
+		    };
+	    
+	    radioButFilenames.addActionListener(sliceActionListener);
+	    radioButQueries.addActionListener(sliceActionListener);
+	    //Group the radio buttons.
+	    ButtonGroup group = new ButtonGroup();
+	    group.add(radioButQueries);
+	    group.add(radioButFilenames);
+	    
+	    GridBagConstraints gbc_radioButQuerires = new GridBagConstraints();
+	    gbc_radioButQuerires.gridx = 0;
+	    gbc_radioButQuerires.gridy = 0;
+	    gbc_radioButQuerires.anchor = GridBagConstraints.FIRST_LINE_START;
+	    panel.add(radioButQueries, gbc_radioButQuerires);
+	    
+	    GridBagConstraints gbc_radioButFilenames = new GridBagConstraints();
+	    gbc_radioButFilenames.gridx = 0;
+	    gbc_radioButFilenames.gridy = 1;
+	    gbc_radioButFilenames.anchor = GridBagConstraints.FIRST_LINE_START;
+	    panel.add(radioButFilenames, gbc_radioButFilenames);
+	    
 		comboBoxName = new JComboBox<String>(new Aaa());
 		comboBoxName.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent arg0) {
 				if (arg0.getStateChange() == ItemEvent.SELECTED) {
 					logger.debug("Selecting test results of scenario " + arg0.getItem().toString());
-					showCompareErrors((String) arg0.getItem());
+					if(radioButQueries.isSelected()){
+						showCompareErrors((String) arg0.getItem(),1);
+					}else{
+						showCompareErrors((String) arg0.getItem(),0);
+					}
+
 					if (tableErrorList.getModel().getRowCount() > 0) {
 						tableErrorList.setRowSelectionInterval(0, 0);
 					}
@@ -473,10 +522,8 @@ public class PanelDetails extends TabbedPanel {
 	 * @param testName
 	 *            name of the tests
 	 */
-	public void showCompareErrors(String testName) {
-		/*
-		 * ((DefaultTableModel) tableErrorList.getModel()).setRowCount(0); try { results.loadFailuresForTest(testName); } catch (ResultParsingException e) { logger.warn("Errors when parsing files with failures", e); } catch (GUIException e) { Utils.showMessageDialog(rootFrame, Level.INFO, e.getMessage(), e); } results.setCurrentTest(testName); DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel(); TestResult result = results.getResults().get(testName); if (result == null) { Utils.showMessageDialog(rootFrame, Level.ERROR, "Internal Error: Test name doesn't exist: " + testName, null); return; } for (QueryFailure failure : result.getFailures()) { model.addRow(new Object[] { failure.getQuery() }); }
-		 */
+	public void showCompareErrors(String testName, int hiddenColumnIndex) {
+
 		results.setCurrentTest(testName);
 		((DefaultTableModel) tableErrorList.getModel()).setRowCount(0);
 		try {
@@ -486,13 +533,32 @@ public class PanelDetails extends TabbedPanel {
 		}
 
 		DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel();
+		if(hiddenColumnIndex==1){
+			if(tableErrorList.getColumnModel().getColumn(1).getMaxWidth()>0){
+			tableErrorList.getColumnModel().getColumn(0).setMinWidth(tableErrorList.getColumnModel().getColumn(1).getMinWidth());
+			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(tableErrorList.getColumnModel().getColumn(1).getMaxWidth());
+			}
+			tableErrorList.getColumnModel().getColumn(1).setMinWidth(0);
+			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(0);
+		}else if(hiddenColumnIndex==0){
+			if(tableErrorList.getColumnModel().getColumn(0).getMaxWidth()>0){
+			tableErrorList.getColumnModel().getColumn(1).setMinWidth(tableErrorList.getColumnModel().getColumn(0).getMinWidth());
+			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(tableErrorList.getColumnModel().getColumn(0).getMaxWidth());
+			}
+			tableErrorList.getColumnModel().getColumn(0).setMinWidth(0);
+			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(0);
+		}else{
+			tableErrorList.getColumnModel().getColumn(1).setMinWidth(0);
+			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(0);
+		}
+
 		TestResult result = results.getResults().get(testName);
 		if (result == null) {
 			Utils.showMessageDialog(rootFrame, Level.ERROR, "Internal Error: Test name doesn't exist: " + testName, null);
 			return;
 		}
 		for (Entry<String, QueryFailure> failure : result.getFailures().entrySet()) {
-			model.addRow(new Object[] { failure.getKey() });
+			model.addRow(new Object[] { failure.getKey(),failure.getValue().getFileName() });
 		}
 	}
 

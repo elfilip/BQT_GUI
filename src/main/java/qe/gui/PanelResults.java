@@ -98,14 +98,6 @@ public class PanelResults extends TabbedPanel {
 		// Button for refresing test results
 		JButton btnNewButton = new JButton("Refresh");
 		RefreshResults.setRefreshButton(btnNewButton);
-		/*btnNewButton.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				logger.info("Test results refresh");
-				addRows(table);
-				panel_details.fillCompBox();
-			}
-		});*/
 		btnNewButton.addActionListener(new ActionListener() {
 			
 			@Override
