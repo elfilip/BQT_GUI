@@ -10,17 +10,34 @@
 		<GUI name="ALL_GUI">
 			<PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n" />
 		</GUI>
+        <RollingRandomAccessFile name="BQT_FILE" fileName="${sys:user.home}/bqt/bqt.log" filePattern="${sys:user.home}/bqt/log_history/bqt/%date{dd-MM-yyyy_HH-mm}.zip">
+            <PatternLayout pattern="%date{dd-MM-yyyy HH:mm:ss.SSS} %-5level %logger{1.} - %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="100" compressionLevel="9"/>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="ALL_FILE" fileName="${sys:user.home}/bqt/app.log" filePattern="${sys:user.home}/bqt/log_history/app/%date{dd-MM-yyyy_HH-mm}.zip">
+            <PatternLayout pattern="%date{dd-MM-yyyy HH:mm:ss.SSS} %-5level %logger{1.} - %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="100" compressionLevel="9"/>
+        </RollingRandomAccessFile>
 	</Appenders>
 	<Loggers>
 		<Logger name="org.jboss.bqt.client" level="INFO" additivity="false">
 			<AppenderRef ref="BQT_GUI" />
+			<AppenderRef ref="BQT_FILE" />
 		</Logger>
 		<Logger name="org.jboss.bqt.framework" level="INFO" additivity="false">
 			<AppenderRef ref="BQT_GUI" />
+			<AppenderRef ref="BQT_FILE" />
 		</Logger>
 		<Root level="DEBUG">
-			<AppenderRef ref="CONSOLE" />
-			<AppenderRef ref="ALL_GUI" />
+			<AppenderRef ref="CONSOLE"/>
+			<AppenderRef ref="ALL_GUI"/>
+			<AppenderRef ref="ALL_FILE"/>
 		</Root>
 	</Loggers>
 </Configuration>

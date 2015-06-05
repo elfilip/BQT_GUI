@@ -25,6 +25,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.MutableComboBoxModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ChangeEvent;
@@ -70,7 +71,7 @@ public class PanelDetails extends TabbedPanel {
 	private JComboBox<String> comboBoxName;
 	private ResultGetter results;
 	private JRadioButton radioButQueries;
-	private  JRadioButton radioButFilenames;
+	private JRadioButton radioButFilenames;
 
 	/**
 	 * 
@@ -89,7 +90,7 @@ public class PanelDetails extends TabbedPanel {
 	}
 
 	public void initialize() {
-		logger.debug("Initializing panel Details");
+		logger.debug("Initializing Panel Details");
 		// Panel for test details
 
 		getParent();
@@ -101,19 +102,22 @@ public class PanelDetails extends TabbedPanel {
 		DefaultTableModel errModel = new DefaultTableModel();
 		errModel.setColumnIdentifiers(new Object[] { "Errors","Errors" });
 		tableErrorList = new ScrollableTable(errModel);
-		// tableErrorList.setPreferredSize(new Dimension(750, 750));
+		tableErrorList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		tableErrorList.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		tableErrorList.getSelectionModel().addListSelectionListener(new ListSelectionListener() { // initializes expected and actual result for query
-												
+
 					@Override
 					public void valueChanged(ListSelectionEvent event) {
-						if (tableErrorList.getSelectedRow() > -1) {
+					    if(event.getValueIsAdjusting()){
+					        return; // wait for end of multiple events
+					    }
+					    int row = tableErrorList.getSelectedRow();
+						if (row > -1) {
 
-							int row = tableErrorList.getSelectedRow();
 							if (results.getCurrentTest() == null) {
 								return;
 							}
-							logger.debug("Loading details for query" + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
+							logger.debug("Loading details for query" + tableErrorList.getValueAt(row, 0));
 							//QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
 							QueryFailure f=null;
 							try {
@@ -136,7 +140,15 @@ public class PanelDetails extends TabbedPanel {
 							tableActualResult.parseXML(f.getActualResult());
 							tableExpectedResult.parseXML(f.getExpectedResult());
 							tableActualResult.bindCells(tableExpectedResult);
-							logger.debug("Details loaded for query " + tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0));
+							logger.debug("Details loaded for query " + tableErrorList.getValueAt(row, 0));
+						} else {
+						    textAreaActualRes.setText(null);
+                            textAreaExpectedRest.setText(null);
+                            txtQueryName.setText(null);
+                            txtErrorErrorError.setText(null);
+                            // tables
+                            tableActualResult.clearTable();
+                            tableExpectedResult.clearTable();
 						}
 					}
 				});
@@ -265,11 +277,12 @@ public class PanelDetails extends TabbedPanel {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				logger.debug("Spawning a new Frame with errors");
-				if (tableErrorList.getSelectedRow() == -1) {
+				int row = tableErrorList.getSelectedRow();
+				if (row == -1) {
 					Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select test failure", null);
 					return;
 				}
-				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(),0));
+				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row,0));
 				ErrorsFrame errFrame = new ErrorsFrame("Errors for " + results.getCurrentTest() + ": " + f.getQueryName());
 				errFrame.initialize().setErrors(f).show();
 			}
@@ -325,6 +338,11 @@ public class PanelDetails extends TabbedPanel {
 		btnNewButton_1.setToolTipText("Saves currents state of expected result");
 		btnNewButton_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+			    int row = tableErrorList.getSelectedRow();
+			    if(row == -1){
+			        Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
+			        return;
+			    }
 				File expectedResult = null;
 				Document root;
 				try {
@@ -335,7 +353,7 @@ public class PanelDetails extends TabbedPanel {
 				}
 				try {
 					File pathtoExpectedResults = FileLoader.getPathToExpectedResults(results.getCurrentTest());
-					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
+					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
 					if (expectedResult == null) {
 						throw new ResultParsingException("Expected result file can't be found");
 					}
@@ -362,6 +380,11 @@ public class PanelDetails extends TabbedPanel {
 		invisible.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
+			    int row = tableErrorList.getSelectedRow();
+                if(row == -1){
+                    Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
+                    return;
+                }
 				File expectedResult = null;
 				Document root;
 				try {
@@ -375,7 +398,7 @@ public class PanelDetails extends TabbedPanel {
 				}
 				try {
 					File pathtoExpectedResults = FileLoader.getPathToExpectedResults(results.getCurrentTest());
-					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
+					expectedResult = FileLoader.findTestInExepectedResults(results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0)).getFileName(), results.getCurrentTest(), pathtoExpectedResults);
 					if (expectedResult == null) {
 						throw new ResultParsingException("Expected result file can't be found");
 					}
@@ -446,8 +469,8 @@ public class PanelDetails extends TabbedPanel {
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
 
-		final JButton shoAsTable = new JButton("Show as table");
-		shoAsTable.addActionListener(new ActionListener() {
+		final JButton showAsTable = new JButton("Show as table");
+		showAsTable.addActionListener(new ActionListener() {
 			boolean isXml = true;
 
 			@Override
@@ -455,12 +478,12 @@ public class PanelDetails extends TabbedPanel {
 				if (isXml) {
 					paneExpectedResult.setViewportView(tableExpectedResult);
 					paneActualResult.setViewportView(tableActualResult);
-					shoAsTable.setText("Show as XML");
+					showAsTable.setText("Show as XML");
 					isXml = false;
 				} else {
 					paneExpectedResult.setViewportView(textAreaExpectedRest);
 					paneActualResult.setViewportView(textAreaActualRes);
-					shoAsTable.setText("Show as table");
+					showAsTable.setText("Show as table");
 					isXml = true;
 				}
 			}
@@ -470,7 +493,7 @@ public class PanelDetails extends TabbedPanel {
 		gbc_showAsTable.gridx = 4;
 		gbc_showAsTable.gridy = 2;
 		gbc_showAsTable.anchor = GridBagConstraints.EAST;
-		panel.add(shoAsTable, gbc_showAsTable);
+		panel.add(showAsTable, gbc_showAsTable);
 	}
 
 	private void setVerticalAndHorizontalUnitIncrement(int vert, int hor, JScrollPane... panes) {
@@ -535,15 +558,15 @@ public class PanelDetails extends TabbedPanel {
 		DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel();
 		if(hiddenColumnIndex==1){
 			if(tableErrorList.getColumnModel().getColumn(1).getMaxWidth()>0){
-			tableErrorList.getColumnModel().getColumn(0).setMinWidth(tableErrorList.getColumnModel().getColumn(1).getMinWidth());
-			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(tableErrorList.getColumnModel().getColumn(1).getMaxWidth());
+    			tableErrorList.getColumnModel().getColumn(0).setMinWidth(tableErrorList.getColumnModel().getColumn(1).getMinWidth());
+    			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(tableErrorList.getColumnModel().getColumn(1).getMaxWidth());
 			}
 			tableErrorList.getColumnModel().getColumn(1).setMinWidth(0);
 			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(0);
 		}else if(hiddenColumnIndex==0){
 			if(tableErrorList.getColumnModel().getColumn(0).getMaxWidth()>0){
-			tableErrorList.getColumnModel().getColumn(1).setMinWidth(tableErrorList.getColumnModel().getColumn(0).getMinWidth());
-			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(tableErrorList.getColumnModel().getColumn(0).getMaxWidth());
+    			tableErrorList.getColumnModel().getColumn(1).setMinWidth(tableErrorList.getColumnModel().getColumn(0).getMinWidth());
+    			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(tableErrorList.getColumnModel().getColumn(0).getMaxWidth());
 			}
 			tableErrorList.getColumnModel().getColumn(0).setMinWidth(0);
 			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(0);

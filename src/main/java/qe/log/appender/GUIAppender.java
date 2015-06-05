@@ -127,6 +127,7 @@ public final class GUIAppender extends AbstractAppender {
 			Style s = doc.getStyle(level.name());
 			s = s == null ? doc.getStyle("default") : s;
 			doc.insertString(doc.getLength(), text, s);
+            textPane.setCaretPosition(doc.getLength());
 		} catch (BadLocationException e) {
 			e.printStackTrace();
 		}

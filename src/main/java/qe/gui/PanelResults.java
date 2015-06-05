@@ -32,7 +32,7 @@ import qe.utils.Utils;
  *
  */
 public class PanelResults extends TabbedPanel {
-	private static final Logger logger = LoggerFactory.getLogger(ResultsGUI.class);
+	private static final Logger logger = LoggerFactory.getLogger(PanelResults.class);
 	private JTable table;
 	private ResultGetter results;
 	private PanelDetails panel_details;
@@ -80,7 +80,7 @@ public class PanelResults extends TabbedPanel {
 		panel.add(scrollPane, c2);
 		table = new JTable(model);
 		table.addMouseListener(new MouseAdapter() { // Listens for clicks on the
-													// table. Swithes to details
+													// table. Switches to details
 													// panel
 			@Override
 			public void mouseClicked(MouseEvent e) {

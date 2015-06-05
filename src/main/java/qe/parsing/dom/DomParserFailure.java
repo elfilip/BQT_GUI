@@ -141,11 +141,11 @@ public class DomParserFailure {
 	}
 	
 	public static Document parseString(String xml) throws ParserConfigurationException, SAXException, IOException{
-		InputSource is = new InputSource();
-		 is.setCharacterStream(new StringReader(xml));
-		 DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		 Document doc = db.parse(is);
-		 return doc;
+	    InputSource is = new InputSource();
+	    is.setCharacterStream(new StringReader(xml));
+	    DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+	    Document doc = db.parse(is);
+	    return doc;
 	}
 	
 }

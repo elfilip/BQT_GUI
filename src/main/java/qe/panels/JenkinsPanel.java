@@ -857,7 +857,7 @@ public class JenkinsPanel extends JPanel {
             status.setStatus(new StringBuilder(downloadedSizeInBytes)
                     .append(" / ")
                     .append((objectSize < 0 ? "???" : getSizeInBytes((double)objectSize, useIB)))
-                    .append("   [at ")
+                    .append("   [")
                     .append(rate)
                     .append("/s]").toString());
         }

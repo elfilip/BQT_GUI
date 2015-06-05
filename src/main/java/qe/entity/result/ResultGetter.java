@@ -131,7 +131,7 @@ public class ResultGetter {
 		TestResult result = results.get(this.getCurrentTest());
 
 		File compareErrorsFolder = new File(Settings.getInstance().getPathToTestResults() + "/" + this.getCurrentTest() + "/" + COMPARE_ERRORS + "/");
-		if (compareErrorsFolder.exists() == false) {
+		if (!compareErrorsFolder.exists()) {
 			return result;
 		}
 		if (result == null) {

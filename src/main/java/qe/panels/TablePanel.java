@@ -77,11 +77,19 @@ public class TablePanel extends JPanel {
      * @param xml XML document as string
      */
     public void parseXML(String xml){
-        LOGGER.trace("Parsing xml: {}", xml);
+        if(LOGGER.isTraceEnabled()){
+            LOGGER.trace("Parsing xml: {}", xml);
+        }
+        if(xml == null || xml.isEmpty()){
+            clearTable();
+            return;
+        }
         this.removeAll();
         try{
             Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
-            LOGGER.trace("Parsed document: {}", doc);
+            if(LOGGER.isTraceEnabled()){
+                LOGGER.trace("Parsed document: {}", doc);
+            }
             Elements node = doc.getElementsByTag(TagNames.ACTUAL_QUERY_RESULTS);
             boolean isSet = false;
             if(!node.isEmpty()){
@@ -110,10 +118,10 @@ public class TablePanel extends JPanel {
                 }
             }
             if(!isSet){
-                LOGGER.warn("The document should cotain one of {}, {}, {}, {} ", 
+                LOGGER.warn("The document should contain one of {}, {}, {}, {}.", 
                         TagNames.ACTUAL_EXCEPTION, TagNames.ACTUAL_QUERY_RESULTS,
                         TagNames.EXPECTED_EXCEPTION, TagNames.EXPECTED_QUERY_RESULTS);
-                //TODO set default content
+                clearTable();
                 return;
             }
             if(type == TYPE_TABLE){
@@ -126,7 +134,7 @@ public class TablePanel extends JPanel {
         } catch (Exception ex){
             LOGGER.error("ERROR", ex);
             type = -1;
-            //TODO - set default content
+            clearTable();
         }
     }
     
@@ -202,8 +210,13 @@ public class TablePanel extends JPanel {
      * highlighted too.
      * 
      * @param table second table
+     * @see #unbindCells()
      */
     public void bindCells(TablePanel table){
+        if(this.table == null){
+            return; // nothing to do
+        }
+        unbindCells();
         if(table == null || table.type != this.type){
             return;
         }
@@ -213,6 +226,31 @@ public class TablePanel extends JPanel {
                 Cell cell2 = getCell(table, r, c);
                 if(cell1 != null){ cell1.setBindedCell(cell2); }
                 if(cell2 != null){ cell2.setBindedCell(cell1); }
+            }
+        }
+    }
+    
+    /**
+     * Clears this table.
+     */
+    public void clearTable(){
+        unbindCells();
+        removeAll();
+        repaint();
+    }
+    
+    /**
+     * Unbinds all cells.
+     * 
+     * @see #bindCells()
+     */
+    public void unbindCells(){
+        if(this.table == null){
+            return; // nothing to do
+        }
+        for(Cell[] r : table){
+            for(Cell c : r){
+                c.setBindedCell(null);
             }
         }
     }

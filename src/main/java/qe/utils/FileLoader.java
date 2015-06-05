@@ -101,27 +101,34 @@ public class FileLoader {
 		}
 		return scenarios;
 	}
-/**
- * Gets path to foler of expected result. It finds the patch using the scenario file
- * @param testName name of the test 
- * @return patch to expected results
- * @throws FileNotFoundException
- * @throws IOException
- * @throws ResultParsingException
- */
+    /**
+     * Gets path to foler of expected result. It finds the patch using the scenario file
+     * @param testName name of the test 
+     * @return patch to expected results
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ResultParsingException
+     */
 	public static File getPathToExpectedResults(String testName) throws FileNotFoundException, IOException, ResultParsingException {
 		// TODO Action if more than one scenario is found
 		ArrayList<Properties> scenarios = loadScenarioFile(testName);
 		if (scenarios.isEmpty()) {
-			throw new ResultParsingException("Can't find scenarios file to find expected results");
+			throw new ResultParsingException("Can't find scenario file to find expected results");
 		}
-		String dirName = scenarios.get(0).getProperty("queryset.dir");
-		String resultsDirName = scenarios.get(0).getProperty("expected.results.dir");
+		Properties prop = scenarios.get(0);
+		String dirName = prop.getProperty("queryset.dirname"); // new property name
+		String resultsDirName = prop.getProperty("expected.results.dirname"); // new property name
 		if (null == dirName) {
-			throw new ResultParsingException("Property queryset.dirname is not in scenarilo file " + testName);
+		    dirName = prop.getProperty("queryset.dir"); // old property name
+		    if(dirName == null){
+		        throw new ResultParsingException("Property queryset.dirname is not in scenario file " + testName);
+		    }
 		}
 		if (resultsDirName == null) {
-			throw new ResultParsingException("Property expected.results.dirname is not in scenarilo file" + testName);
+		    resultsDirName = prop.getProperty("expected.results.dir"); // old property name
+		    if (resultsDirName == null) {
+		        throw new ResultParsingException("Property expected.results.dirname is not in scenario file" + testName);
+		    }
 		}
 		File result = new File(Settings.getInstance().getPathToRepository() + "/teiid-test-artifacts-v6/ctc-tests/queries/" + dirName + "/" + resultsDirName);
 		if (result.exists() == false) {
@@ -129,16 +136,16 @@ public class FileLoader {
 		}
 		return result;
 	}
-/**
- * Finds expected result file. At first, it guesses the name and path of the file. Using fulltext search if unsuccessful.
- * @param fileName name of the expected result file
- * @param testName name of the test
- * @param pathToExpectedResults path to folder with expected results for this test
- * @return returns the expected result file
- * @throws FileNotFoundException
- * @throws IOException
- * @throws ResultParsingException
- */
+    /**
+     * Finds expected result file. At first, it guesses the name and path of the file. Using fulltext search if unsuccessful.
+     * @param fileName name of the expected result file
+     * @param testName name of the test
+     * @param pathToExpectedResults path to folder with expected results for this test
+     * @return returns the expected result file
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ResultParsingException
+     */
 	public static File findTestInExepectedResults(String fileName, String testName, File pathToExpectedResults) throws FileNotFoundException, IOException, ResultParsingException {
 
 		int index = fileName.lastIndexOf("_") - 1;
