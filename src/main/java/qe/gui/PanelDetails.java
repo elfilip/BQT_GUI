@@ -43,6 +43,7 @@ import qe.entity.result.ResultGetter;
 import qe.entity.result.TestResult;
 import qe.exception.GUIException;
 import qe.exception.ResultParsingException;
+import qe.gui.highlight.XMLTextPane;
 import qe.panels.TablePanel;
 import qe.parsing.dom.DomParserExpectedRes;
 import qe.parsing.dom.DomParserFailure;
@@ -58,8 +59,8 @@ import qe.utils.Utils;
 public class PanelDetails extends TabbedPanel {
 	private static final Logger logger = LoggerFactory.getLogger(PanelDetails.class);
 	private ScrollableTable tableErrorList;
-	private JTextArea textAreaExpectedRest;
-	private JTextArea textAreaActualRes;
+	private XMLTextPane textAreaExpectedRest;
+	private XMLTextPane textAreaActualRes;
 	private TablePanel tableExpectedResult;
 	private TablePanel tableActualResult;
 	private JScrollPane paneErrorsList;
@@ -80,8 +81,8 @@ public class PanelDetails extends TabbedPanel {
 	public PanelDetails(ResultGetter results) {
 		super();
 		this.results = results;
-		textAreaExpectedRest = new JTextArea();
-		textAreaActualRes = new JTextArea();
+		textAreaExpectedRest = new XMLTextPane();
+		textAreaActualRes = new XMLTextPane();
 		txtErrorErrorError = new JTextField();
 		txtQueryName = new JTextField();
 		tableExpectedResult = new TablePanel();
@@ -425,7 +426,7 @@ public class PanelDetails extends TabbedPanel {
 		gbc_paneActualResult.gridheight = 10;
 		panel.add(paneActualResult, gbc_paneActualResult);
 
-		textAreaActualRes = new JTextArea();
+		textAreaActualRes = new XMLTextPane();
 		paneActualResult.setViewportView(textAreaActualRes);
 
 		// Text area for expected results
@@ -441,7 +442,7 @@ public class PanelDetails extends TabbedPanel {
 		gbc_paneExpectedResult.gridheight = 10;
 		panel.add(paneExpectedResult, gbc_paneExpectedResult);
 
-		textAreaExpectedRest = new JTextArea();
+		textAreaExpectedRest = new XMLTextPane();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
