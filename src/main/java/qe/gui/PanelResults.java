@@ -1,5 +1,7 @@
 package qe.gui;
 
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -11,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -19,6 +21,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
@@ -82,6 +85,7 @@ public class PanelResults extends TabbedPanel {
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane, c2);
 		table = new JTable(model);
+		table.setDefaultRenderer(Object.class, new Renderer());
 		table.addMouseListener(new MouseAdapter() { // Listens for clicks on the
 													// table. Switches to details
 													// panel
@@ -146,6 +150,7 @@ public class PanelResults extends TabbedPanel {
             row[3] = res.getNumberOfTotalTests();
             row[4] = res.getNumberOfSkippedTests();
             model.addRow(row);
+            
 		}
 	}
 
@@ -156,4 +161,33 @@ public class PanelResults extends TabbedPanel {
 			throw new RuntimeException("This panel must be in tabbed pane");
 		}
 	}
+	
+	private class Renderer implements TableCellRenderer {
+        
+	    private final Color col = new Color(240,189,189);
+	    private final Map<String, JLabel> labels = new HashMap<>();
+	    
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel text = labels.get(row + " " + column);
+            if(text == null){
+                text = new JLabel();
+                text.setFont(table.getFont());
+                labels.put(row + " " + column, text);
+            }
+            text.setText(String.valueOf(value));
+            if(column > 1 && column != 3){
+                try{
+                    if(Integer.parseInt(String.valueOf(value)) > 0){
+                        text.setOpaque(true);
+                        text.setBackground(col);
+                    }
+                } catch (NumberFormatException ex){
+                    logger.debug("Value is not a number - {} [row {}, column {}]", value, row, column);
+                }
+            }
+            return text;
+        }
+    }
 }
