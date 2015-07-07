@@ -1,6 +1,5 @@
 package qe.entity.result;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -19,7 +18,7 @@ public class TestResult {
 	private HashMap<String, QueryFailure> failures = new HashMap<String,QueryFailure>();
 	private boolean failuresLoaded = false;
 
-	/**
+    /**
 	 * Returns number of failed queries
 	 * 
 	 * @return number of failed queries

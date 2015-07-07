@@ -3,7 +3,6 @@ package qe.entity.result;
 import java.awt.Frame;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 
@@ -12,7 +11,6 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
 import qe.entity.settings.Settings;
 import qe.exception.GUIException;

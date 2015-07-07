@@ -7,7 +7,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 import javax.swing.JButton;
@@ -132,16 +135,18 @@ public class PanelResults extends TabbedPanel {
 		}
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
 		model.setRowCount(0);
-		for (Entry<String, TestResult> e : map.entrySet()) {
-			Object[] row = new Object[5];
-			row[0] = e.getKey();
-			row[1] = e.getValue().getNumberOfSuccessfulTests();
-			row[2] = e.getValue().getNumberOfErrorTests();
-			row[3] = e.getValue().getNumberOfTotalTests();
-			row[4] = e.getValue().getNumberOfSkippedTests();
-			model.addRow(row);
+		List<String> scenarios = new ArrayList<String>(map.keySet());
+		Collections.sort(scenarios);
+		for(String scen : scenarios){
+		    TestResult res = map.get(scen);
+		    Object[] row = new Object[5];
+            row[0] = scen;
+            row[1] = res.getNumberOfSuccessfulTests();
+            row[2] = res.getNumberOfErrorTests();
+            row[3] = res.getNumberOfTotalTests();
+            row[4] = res.getNumberOfSkippedTests();
+            model.addRow(row);
 		}
-
 	}
 
 	private JTabbedPane getParentPane() {

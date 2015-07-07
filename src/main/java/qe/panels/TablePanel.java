@@ -1,10 +1,13 @@
 package qe.panels;
 
+import java.util.List;
+
 import javax.swing.JPanel;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
@@ -162,7 +165,7 @@ public class TablePanel extends JPanel {
         }
         int idx = 0;
         for(Element dataElement : dataElements){
-            StringBuilder b = new StringBuilder(dataElement.text())
+            StringBuilder b = new StringBuilder(getWholeText(dataElement))
                     .append(" [")
                     .append(dataElement.attr(TagNames.TYPE))
                     .append("]");
@@ -175,7 +178,7 @@ public class TablePanel extends JPanel {
             table[++rowIdx][0] = new Cell(Integer.toString(rowIdx));
             int cellIdx = 1;
             for(Element tableCell : tableRow.getElementsByTag(TagNames.TABLE_CELL)){
-                table[rowIdx][cellIdx++] = new Cell(tableCell.text());
+                table[rowIdx][cellIdx++] = new Cell(getWholeText(tableCell));
             }
         }
     }
@@ -199,9 +202,34 @@ public class TablePanel extends JPanel {
         columns = 2;
         table = new Cell[rows][columns];
         table[0][0] = new Cell("Exception type");
-        table[0][1] = new Cell(exceptionType.get(0).text());
+        table[0][1] = new Cell(getWholeText(exceptionType.get(0)));
         table[1][0] = new Cell("Exception message");
-        table[1][1] = new Cell(exceptionMessage.get(0).text());
+        table[1][1] = new Cell(getWholeText(exceptionMessage.get(0)));
+    }
+    
+    private String getWholeText(Element e){
+        Elements children = e.children();
+        if(children.isEmpty()){
+            return getWholeTextOfTextNodes(e);
+        } else {
+            StringBuilder b = new StringBuilder();
+            for(Element ch : children){
+                b.append(getWholeTextOfTextNodes(ch));
+            }
+            return b.toString();
+        }
+    }
+    
+    private String getWholeTextOfTextNodes(Element e){
+        List<TextNode> texts =  e.textNodes();
+        if(texts.isEmpty()){
+            return e.text();
+        }
+        StringBuilder b = new StringBuilder();
+        for(TextNode tn : texts){
+            b.append(tn.getWholeText());
+        }
+        return b.toString();
     }
     
     /**

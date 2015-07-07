@@ -11,6 +11,9 @@ import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
 
 import javax.swing.AbstractButton;
@@ -591,11 +594,14 @@ public class PanelDetails extends TabbedPanel {
 	public void fillCompBox() {
 		comboBoxName.removeAllItems();
 		int counter = 0;
-		if (results.getResults() != null)
-			for (Entry<String, TestResult> e : results.getResults().entrySet()) {
-				comboBoxName.insertItemAt(e.getKey(), counter);
+		if (results.getResults() != null){
+		    List<String> scenarios = new ArrayList<String>(results.getResults().keySet());
+		    Collections.sort(scenarios);
+			for (String s : scenarios) {
+				comboBoxName.insertItemAt(s, counter);
 				counter++;
 			}
+		}
 	}
 
 	/**

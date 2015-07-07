@@ -37,7 +37,9 @@ class JenkinsXMLAPIPUtils {
      * @return
      */
     static List<String> getViews(Document doc){
-        LOGGER.debug("Getting jenkins view names from document {}.", doc.toString());
+        if(LOGGER.isTraceEnabled()){
+            LOGGER.trace("Getting jenkins view names from document {}.", doc.toString());
+        }
         return getTextOfElements(doc, "view > name");
     }
     
@@ -48,7 +50,9 @@ class JenkinsXMLAPIPUtils {
      * @return
      */
     static List<String> getJobs(Document doc){
-        LOGGER.debug("Getting jenkins job names from document {}.", doc.toString());
+        if(LOGGER.isTraceEnabled()){
+            LOGGER.trace("Getting jenkins job names from document {}.", doc.toString());
+        }
         return getTextOfElements(doc, "job > name");
     }
     
@@ -60,7 +64,9 @@ class JenkinsXMLAPIPUtils {
      * @throws JenkinsException
      */
     static JenkinsJob getJob(Document doc) throws JenkinsException{
-        LOGGER.debug("Getting jenkins job from document {}.", doc.toString());
+        if(LOGGER.isTraceEnabled()){
+            LOGGER.trace("Getting jenkins job from document {}.", doc.toString());
+        }
         //we support only matrix projects
         JenkinsJob job = new JenkinsJob();
         String jobUrl = getTextOfElements(doc, "matrixProject > url").get(0);

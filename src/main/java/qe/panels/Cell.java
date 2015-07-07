@@ -1,11 +1,11 @@
 package qe.panels;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
 /**
@@ -14,7 +14,7 @@ import javax.swing.border.EtchedBorder;
  * @author jdurani
  *
  */
-public class Cell extends JPanel {
+public class Cell extends JTextField {
 
     private static final long serialVersionUID = -409413476746932759L;
     
@@ -58,7 +58,10 @@ public class Cell extends JPanel {
      */
     private void init(){
         setBorder(new EtchedBorder(EtchedBorder.LOWERED));
-        add(new JLabel(text));
+        setText(text);
+        setEditable(false);
+        setHorizontalAlignment(CENTER);
+        setFont(getFont().deriveFont(Font.BOLD, 15));
         setBackground(BASIC_BACKGROUND);
         isHighlighted = false;
         
@@ -89,9 +92,11 @@ public class Cell extends JPanel {
     private void innerHighlight(boolean highlightBindedCell){
         if(isHighlighted){
             setBackground(BASIC_BACKGROUND);
+            setText(text);
             isHighlighted = false;
         } else {
             setBackground(HIGHLIGHTED_BACKGROUND);
+            setText("'" + text + "'");
             isHighlighted = true;
         }
         if(highlightBindedCell && bindedCell != null){

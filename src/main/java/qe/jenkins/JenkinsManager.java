@@ -248,7 +248,7 @@ public class JenkinsManager {
     private static Document fetchDocument(String url, Method method) throws JenkinsException{
         try{
             Response res = fetchResponse(url, method);
-            LOGGER.info("Parsing response.");
+            LOGGER.debug("Parsing response.");
             return res.parse();
         } catch (IOException t){
             String message = "Exception while parsing document: " + t.getMessage();
@@ -286,7 +286,7 @@ public class JenkinsManager {
             if(res == null){
                 throw lastEx;
             }
-            LOGGER.info("Response content type: {}", res.contentType());
+            LOGGER.debug("Response content type: {}", res.contentType());
             return res;
         } catch (Throwable t){
             String message = "Throwable while fetching document: " + t.getMessage();
