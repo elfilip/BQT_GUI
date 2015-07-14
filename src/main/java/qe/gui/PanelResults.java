@@ -177,6 +177,8 @@ public class PanelResults extends TabbedPanel {
                 labels.put(row + " " + column, text);
             }
             text.setText(String.valueOf(value));
+            text.setOpaque(false);
+            text.setBackground(Color.WHITE);
             if(column > 1 && column != 3){
                 try{
                     if(Integer.parseInt(String.valueOf(value)) > 0){
