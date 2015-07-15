@@ -16,7 +16,7 @@ public class JenkinsActiveConfiguration {
      * @author jdurani
      *
      */
-    public static enum JenkinsStatus {SUCCESS, FAILURE, UNSTABLE, ABORTED, BUILDING, NONE};
+    public static enum JenkinsStatus {SUCCESS, FAILURE, UNSTABLE, ABORTED, BUILDING, PENDING, NONE};
     
     /**
      * Value on X-axis in multi-configuration matrix. 

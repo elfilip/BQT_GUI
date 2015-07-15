@@ -5,11 +5,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -31,12 +34,14 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +95,10 @@ public class JenkinsPanel extends JPanel {
     private JButton downloadAllArtifactsOfBuild;
     private JButton downloadCustomArtifactsOfNode;
     
+    private JButton downloadConsoleLogOfNode;
+    private JButton downloadConsoleLogsOfBuild;
+    private JButton showLogOfNode;
+    
     private final SaveToSettingsFileAction saveViewName = new SaveViewName();
     private final SaveToSettingsFileAction saveJobName = new SaveJobName();
     private final SaveToSettingsFileAction saveDownloadDir = new SaveDownloadDir();
@@ -101,6 +110,8 @@ public class JenkinsPanel extends JPanel {
     private SelectJobViewWorker selectJobViewWorker;
     private ShowJobWorker showJobWorker;
     private DownloadArtifactsWorker downloadArtifactsWorker;
+    private DownloadLogWorker downloadLogWorker;
+    private ShowLogWorker showLogWorker;
     
     /**
      * {@inheritDoc}
@@ -132,7 +143,10 @@ public class JenkinsPanel extends JPanel {
                 .addComponent(showResults)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode))
+                .addComponent(downloadCustomArtifactsOfNode)
+                .addComponent(downloadConsoleLogOfNode)
+                .addComponent(downloadConsoleLogsOfBuild)
+                .addComponent(showLogOfNode))
             .addGroup(gl.createParallelGroup()
                 .addComponent(status)
                 .addGroup(gl.createParallelGroup()
@@ -158,7 +172,11 @@ public class JenkinsPanel extends JPanel {
                 .addGap(25)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
-                .addComponent(downloadCustomArtifactsOfNode))
+                .addComponent(downloadCustomArtifactsOfNode)
+                .addGap(25)
+                .addComponent(downloadConsoleLogOfNode)
+                .addComponent(downloadConsoleLogsOfBuild)
+                .addComponent(showLogOfNode))
             .addGroup(gl.createSequentialGroup()
                 .addComponent(status)
                 .addGroup(gl.createSequentialGroup()
@@ -181,7 +199,8 @@ public class JenkinsPanel extends JPanel {
         gl.linkSize(SwingConstants.VERTICAL, jobName, viewName, downloadDir);
         gl.linkSize(selectJobButton, selectViewButton, selectDownloadDirButton);
         gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode,
-                downloadCustomArtifactsOfNode, showResults);
+                downloadCustomArtifactsOfNode, showResults, downloadConsoleLogOfNode,
+                downloadConsoleLogsOfBuild, showLogOfNode);
         
         setLayout(gl);
     }
@@ -251,6 +270,15 @@ public class JenkinsPanel extends JPanel {
         
         downloadCustomArtifactsOfNode = new JButton("Download custom artifacts of node");
         downloadCustomArtifactsOfNode.addActionListener(new DownloadCustomArtifactsOfNodeActionListener());
+        
+        downloadConsoleLogOfNode = new JButton("Download console log of node");
+        downloadConsoleLogOfNode.addActionListener(new DownloadConsoleLogOfNodeActionListener());
+        
+        downloadConsoleLogsOfBuild = new JButton("Download console logs of build");
+        downloadConsoleLogsOfBuild.addActionListener(new DownloadConsoleLogsOfBuildActionListener());
+        
+        showLogOfNode = new JButton("Show log of node");
+        showLogOfNode.addActionListener(new ShowLogOfNodeActionListener());
         
         showResults = new JButton("Show results");
         showResults.addActionListener(new ShowResultsActionListener());
@@ -559,8 +587,8 @@ public class JenkinsPanel extends JPanel {
      *  
      * @return
      */
-    private boolean checkRequiredJenkinsSettingsBeforeDownload(){
-        if(!notRunning(downloadArtifactsWorker)){
+    private <T, K> boolean checkRequiredJenkinsSettingsBeforeDownload(SwingWorker<T, K> worker){
+        if(!notRunning(worker)){
             return false;
         }
         if(!needJenkinJob()){
@@ -594,6 +622,19 @@ public class JenkinsPanel extends JPanel {
         return true;
     }
 
+    private JenkinsBuild getSelectedBuild() {
+        Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
+        JenkinsBuild actualBuild = null;
+        String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
+        for(JenkinsBuild b : builds){
+            if(b.getBuildNumber().equals(sbn)){
+                actualBuild = b;
+                break;
+            }
+        }
+        return actualBuild;
+    }
+
     /**
      * Downloads all artifacts of node (active configuration).
      * 
@@ -603,18 +644,18 @@ public class JenkinsPanel extends JPanel {
     private class DownloadAllArtifactsOfNodeActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload()){
+            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
                 return;
             }
             if(!needNode()){
                 return;
             }
             String destFile = "1.zip";
-            File downloadDirFile = new File(downloadDir.getText(),
-                    jenkinsBuildPanel.getJobName() + File.separator
-                    + jenkinsBuildPanel.getSelectedBuildNumber() + File.separator
-                    + jenkinsBuildPanel.getSelectedXValue() + File.separator
-                    + jenkinsBuildPanel.getSelectedYValue());
+            File downloadDirFile = FileUtils.getFile(downloadDir.getText(),
+                    jenkinsBuildPanel.getJobName(),
+                    jenkinsBuildPanel.getSelectedBuildNumber(),
+                    jenkinsBuildPanel.getSelectedXValue(),
+                    jenkinsBuildPanel.getSelectedYValue());
             Properties prop = new Properties();
             prop.put(DownloadArtifactsWorker.URL, jenkinsBuildPanel.getUrlOfSelectedNode());
             prop.put(DownloadArtifactsWorker.FILE, destFile);
@@ -637,19 +678,12 @@ public class JenkinsPanel extends JPanel {
     private class DownloadAllArtifactsOfBuildActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload()){
+            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
                 return;
             }
-            Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
-            JenkinsBuild actualBuild = null;
-            String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
-            for(JenkinsBuild b : builds){
-                if(b.getBuildNumber().equals(sbn)){
-                    actualBuild = b;
-                    break;
-                }
-            }
-            List<Properties> props = new ArrayList<>();
+            JenkinsBuild actualBuild = getSelectedBuild();
+            
+                    List<Properties> props = new ArrayList<>();
             String basePath = downloadDir.getText() + File.separator
                     + jenkinsBuildPanel.getJobName() + File.separator
                     + actualBuild.getBuildNumber();
@@ -659,7 +693,7 @@ public class JenkinsPanel extends JPanel {
                         jac.getxValue() + File.separator + jac.getyValue());
                 Properties prop = new Properties();
                 prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
-                prop.put(DownloadArtifactsWorker.FILE, (i++) + ".zip");
+                prop.put(DownloadArtifactsWorker.FILE, i++ + ".zip");
                 prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
                 prop.put(DownloadArtifactsWorker.FAIL, false);
                 props.add(prop);
@@ -678,7 +712,7 @@ public class JenkinsPanel extends JPanel {
     private class DownloadCustomArtifactsOfNodeActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload()){
+            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
                 return;
             }
             // TODO fill properties
@@ -826,6 +860,182 @@ public class JenkinsPanel extends JPanel {
     		}
         	parent.setSelectedIndex(0);
         	RefreshResults.getRefreshButton().doClick();
+        }
+    }
+    
+    private class DownloadConsoleLogOfNodeActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadLogWorker)){
+                return;
+            }
+            if(!needNode()){
+                return;
+            }
+            
+            File downloadDirFile = FileUtils.getFile(downloadDir.getText(),
+                    jenkinsBuildPanel.getJobName(),
+                    jenkinsBuildPanel.getSelectedBuildNumber(),
+                    jenkinsBuildPanel.getSelectedXValue(),
+                    jenkinsBuildPanel.getSelectedYValue());
+            Properties props = new Properties();
+            props.put(DownloadArtifactsWorker.URL, jenkinsBuildPanel.getUrlOfSelectedNode());
+            props.put(DownloadArtifactsWorker.FILE, downloadDirFile.getAbsolutePath());
+            props.put(DownloadArtifactsWorker.FAIL, true);
+            
+            downloadLogWorker = new DownloadLogWorker(Arrays.asList(props));
+            downloadLogWorker.execute();
+        }
+    }
+    
+    private class DownloadConsoleLogsOfBuildActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadLogWorker)){
+                return;
+            }
+            
+            JenkinsBuild actualBuild = getSelectedBuild();
+            List<Properties> props = new ArrayList<>();
+            File basePath = FileUtils.getFile(downloadDir.getText(),
+                    jenkinsBuildPanel.getJobName(),
+                    actualBuild.getBuildNumber());
+            for(JenkinsActiveConfiguration jac : actualBuild.getActiveConfigurations()){
+                File downloadDirFile = FileUtils.getFile(basePath,
+                        jac.getxValue(),
+                        jac.getyValue());
+                Properties prop = new Properties();
+                prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
+                prop.put(DownloadArtifactsWorker.FILE, downloadDirFile.getAbsolutePath());
+                prop.put(DownloadArtifactsWorker.FAIL, false);
+                props.add(prop);
+            }
+            downloadLogWorker = new DownloadLogWorker(props);
+            downloadLogWorker.execute();
+        }
+    }
+    
+    private class DownloadLogWorker extends SwingWorker<Void, Void>{
+        
+        private final List<Properties> toDownload;
+        private static final String CONSOLE_LOG = "consoleLog";
+        
+        public DownloadLogWorker(List<Properties> toDownload) {
+            super();
+            this.toDownload = toDownload;
+        }
+
+        @Override
+        protected Void doInBackground() throws Exception {
+            for(Properties props : toDownload){
+                JenkinsManager.getConsoleLogOfNode(props.getProperty(DownloadArtifactsWorker.URL),
+                        props.getProperty(DownloadArtifactsWorker.FILE) + File.separator + CONSOLE_LOG,
+                        downloadPublisher,
+                        Boolean.valueOf(props.getProperty(DownloadArtifactsWorker.FAIL)));
+            }
+            return null;
+        }
+        
+        @Override
+        protected void done() {
+            try{
+                status.setStatus("Downloading done.");
+                get();
+            } catch(InterruptedException | ExecutionException | CancellationException ex){
+                Throwable t;
+                if(ex instanceof ExecutionException){
+                    t = ex.getCause();
+                } else {
+                    t = ex;
+                }
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
+                        t.getMessage(), t);
+            } finally {
+                downloadLogWorker = null;
+            }
+        }
+    }
+    
+    private class ShowLogOfNodeActionListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if(!notRunning(showLogWorker)
+                    || !needJenkinJob()
+                    || !needBuildNumber()
+                    || !needNode()){
+                return;
+            }
+            File logFile = FileUtils.getFile(downloadDir.getText(),
+                    jenkinsBuildPanel.getJobName(),
+                    jenkinsBuildPanel.getSelectedBuildNumber(),
+                    jenkinsBuildPanel.getSelectedXValue(),
+                    jenkinsBuildPanel.getSelectedYValue(),
+                    DownloadLogWorker.CONSOLE_LOG);
+            if(!logFile.exists()){
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.WARN, "Log file not found. Use one of \"Download log...\" buttons.", null);
+                return;
+            }
+            showLogWorker = new ShowLogWorker(logFile.getAbsolutePath());
+            showLogWorker.execute();
+        }
+    }
+    
+    private class ShowLogWorker extends SwingWorker<JTextArea, Void> {
+        
+        private final String logFile;
+        
+        private ShowLogWorker(String logFile) {
+            super();
+            this.logFile = logFile;
+        }
+
+        @Override
+        protected JTextArea doInBackground() throws Exception{
+            status.setStatus("Reading console log ...");
+            try(FileReader reader = new FileReader(logFile);
+                    BufferedReader br = new BufferedReader(reader)){
+                JTextArea area = new JTextArea();
+                area.read(br, logFile);
+                return area;
+            }
+        }
+        
+        @Override
+        protected void done(){
+            try{
+                status.setStatus("Showing log...");
+                JTextArea area = get();
+                JPanel panel = new JPanel();
+                JScrollPane pane = new JScrollPane(area);
+                
+                GroupLayout gl = new GroupLayout(panel);
+                gl.setVerticalGroup(gl.createSequentialGroup()
+                        .addComponent(pane, 500, 500, 1500));
+                gl.setHorizontalGroup(gl.createSequentialGroup()
+                        .addComponent(pane, 600, 600, 2500));
+                gl.setAutoCreateContainerGaps(true);
+                panel.setLayout(gl);
+                JFrame consoleFrame = new JFrame();
+                consoleFrame.add(panel);
+                consoleFrame.setResizable(true);
+                consoleFrame.setTitle("Console log - " + logFile);
+                consoleFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                consoleFrame.pack();
+                consoleFrame.setLocationRelativeTo(getWindowAncestor());
+                consoleFrame.setVisible(true);
+            } catch(InterruptedException | ExecutionException | CancellationException ex){
+                Throwable t;
+                if(ex instanceof ExecutionException){
+                    t = ex.getCause();
+                } else {
+                    t = ex;
+                }
+                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
+                        t.getMessage(), t);
+            } finally {
+                status.setStatus("Showing log done.");
+                showLogWorker = null;
+            }
         }
     }
     

@@ -2,6 +2,7 @@ package qe.jenkins;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
@@ -104,7 +106,7 @@ public class JenkinsManager {
                 .append("view/")
                 .append(view)
                 .append("/job/")
-                .append(job), "url,name,builds[number,url,runs[building,result,url]]")
+                .append(job), "url,name,builds[number,url,building,result,runs[building,result,url]]")
             .toString();
         Document doc = getDocument(url);
         return JenkinsXMLAPIPUtils.getJob(doc);
@@ -136,6 +138,23 @@ public class JenkinsManager {
         downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);        
     }
     
+    /**
+     * 
+     * @param url the URL of active configuration
+     * @param destFile destination file name (on local file system)
+     * @param publisher download publisher - to publish the download status
+     * @param failIfNotFound if true, an exception will be thrown if required 
+     *      artifacts are not found at specified URL
+     * @throws JenkinsException if specified artifacts are not found
+     * @throws IOException download or storing to local file system
+     */
+    public static void getConsoleLogOfNode(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound)
+            throws JenkinsException, IOException{
+        check(url, "URL cannot be empty");
+        check(destFile, "Destination file cannot be empty.");
+        StringBuilder urlBuilder = new StringBuilder(url).append("/consoleText/");
+        downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);
+    }
     
     /**
      * Downloads file from URL and stores it to local file system in file {@code destFile}. 
@@ -153,6 +172,11 @@ public class JenkinsManager {
         URL u = new URL(url);
         URLConnection con = u.openConnection();
         final long contentLength = con.getContentLengthLong();
+        File destFileFile = new File(destFile);
+        if(!destFileFile.exists()){
+            FileUtils.forceMkdir(destFileFile.getParentFile());
+            destFileFile.createNewFile();
+        }
         try(InputStream is = con.getInputStream();
                 BufferedInputStream bis = new BufferedInputStream(is);
                 FileOutputStream fos = new FileOutputStream(destFile, false);

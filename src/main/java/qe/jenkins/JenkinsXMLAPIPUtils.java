@@ -120,6 +120,12 @@ class JenkinsXMLAPIPUtils {
                     LOGGER.warn("Exception while adding active configuration: " + ex.getMessage());
                 }
             }
+            if(Boolean.valueOf(buildElem.select("building").get(0).ownText())){
+                build.setStatus(JenkinsStatus.BUILDING);
+            } else {
+                build.setStatus(JenkinsStatus.valueOf(buildElem.select("result").get(0).ownText()));
+            }
+            build.setStatusOfPendingConfigurations();
             job.addBuild(build);
         }
         return job;

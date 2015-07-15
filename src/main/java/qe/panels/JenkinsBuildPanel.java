@@ -39,7 +39,8 @@ public class JenkinsBuildPanel extends JPanel {
     private static final Color SUCCESS_COLOR = new Color(100,149,237);
     private static final Color FAILURE_COLOR = new Color(220,20,60);
     private static final Color UNSTABLE_COLOR = new Color(218,165,32);
-    private static final Color BUILDING_COLOR = Color.WHITE;
+    private static final Color BUILDING_COLOR = new Color(255,218,185);
+    private static final Color PENDING_COLOR = new Color(50,205,50);
     private static final Color DEFAULT_COLOR = new JPanel().getBackground();
 
     /**
@@ -104,6 +105,8 @@ public class JenkinsBuildPanel extends JPanel {
             });
             buildNumberGroup.add(b);
             buildButton[i++] = b;
+            b.setBackground(getColor(jb.getStatus()));
+            Utils.setToolTipText(b, jb.getStatus().name());
         }
         JLabel buildNumLab = new JLabel("Build number");
         GroupLayout gl = new GroupLayout(this);
@@ -140,6 +143,7 @@ public class JenkinsBuildPanel extends JPanel {
         String xLab = jb.getxLabel();
         String yLab = jb.getyLabel();
         Set<JenkinsActiveConfiguration> jacSet = jb.getActiveConfigurations();
+        jacSet.addAll(jb.getPendingActiveConfigurations());
         List<String> xVals = new ArrayList<>();
         List<String> yVals = new ArrayList<>();
         for(JenkinsActiveConfiguration jac : jacSet){
@@ -253,6 +257,25 @@ public class JenkinsBuildPanel extends JPanel {
         }
         return null;
     }
+    
+    private static Color getColor(JenkinsStatus status){
+        switch(status){
+            case SUCCESS:
+                return SUCCESS_COLOR;
+            case FAILURE:
+                return FAILURE_COLOR;
+            case UNSTABLE:
+                return UNSTABLE_COLOR;
+            case BUILDING:
+                return BUILDING_COLOR;
+            case PENDING:
+                return PENDING_COLOR;
+            case ABORTED:
+            case NONE:
+            default:
+                return DEFAULT_COLOR;
+        }
+    }
 
     /**
      * JRadioButton with several properties.
@@ -283,23 +306,6 @@ public class JenkinsBuildPanel extends JPanel {
             Component parent = getParent();
             if(parent != null){
                 parent.setBackground(c);
-            }
-        }
-        
-        private Color getColor(JenkinsStatus status){
-            switch(status){
-                case SUCCESS:
-                    return SUCCESS_COLOR;
-                case FAILURE:
-                    return FAILURE_COLOR;
-                case UNSTABLE:
-                    return UNSTABLE_COLOR;
-                case BUILDING:
-                    return BUILDING_COLOR;
-                case ABORTED:
-                case NONE:
-                default:
-                    return DEFAULT_COLOR;
             }
         }
     }

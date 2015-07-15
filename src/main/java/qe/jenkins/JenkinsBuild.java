@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import qe.exception.JenkinsException;
+import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 
 /**
  * The jenkins build. Contains active configurations - configurations that was run during the build.
@@ -34,9 +35,17 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
      */
     private String url;
     /**
+     * The status of build.
+     */
+    private JenkinsStatus status = JenkinsStatus.NONE;
+    /**
      * The active configurations.
      */
     private Set<JenkinsActiveConfiguration> activeConfigurations = new HashSet<>();
+    /**
+     * The pending active configurations.
+     */
+    private Set<JenkinsActiveConfiguration> pendingActiveConfigurations = new HashSet<>();
     
     /**
      * Returns build number.
@@ -93,6 +102,24 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
     }
     
     /**
+     * Returns status of this build.
+     * 
+     * @return
+     */
+    public JenkinsStatus getStatus() {
+        return status;
+    }
+
+    /**
+     * Sets status of this build.
+     * 
+     * @param status
+     */
+    public void setStatus(JenkinsStatus status) {
+        this.status = status;
+    }
+
+    /**
      * Returns active configurations of this build.
      * 
      * @return
@@ -101,6 +128,15 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
         return activeConfigurations;
     }
     
+    /**
+     * Returns pending active configurations of this build.
+     * 
+     * @return
+     */
+    public Set<JenkinsActiveConfiguration> getPendingActiveConfigurations() {
+        return pendingActiveConfigurations;
+    }
+
     /**
      * Returns URL of this build.
      * 
@@ -144,7 +180,8 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
             throw new JenkinsException("Active configuration is not part of build's job.");
         }
         if(!jacUrl.endsWith("/" + buildNumber + "/")){
-            throw new JenkinsException("Active configuration is not part of this build [" + buildNumber + ", " + jacUrl + "].");
+            pendingActiveConfigurations.add(jac);
+            return;
         }
         if(!jacUrl.contains(("/" + xLabel + "="))){
             throw new JenkinsException("Active configuration and build have differenet X-label.");
@@ -154,6 +191,22 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
         }
         
         activeConfigurations.add(jac);
+    }
+    
+    public void setStatusOfPendingConfigurations(){
+        if(status == JenkinsStatus.BUILDING){
+            for(JenkinsActiveConfiguration jac : pendingActiveConfigurations){
+                jac.setStatus(JenkinsStatus.PENDING);
+            }
+        } else if(status == JenkinsStatus.ABORTED){
+            for(JenkinsActiveConfiguration jac : pendingActiveConfigurations){
+                jac.setStatus(JenkinsStatus.ABORTED);
+            }
+        } else {
+            if(!pendingActiveConfigurations.isEmpty()){
+                throw new IllegalStateException("Build finished normally but contains pending active configurations.");
+            }
+        }
     }
     
     @Override
