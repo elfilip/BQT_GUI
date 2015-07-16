@@ -932,6 +932,7 @@ public class JenkinsPanel extends JPanel {
                         props.getProperty(DownloadArtifactsWorker.FILE) + File.separator + CONSOLE_LOG,
                         downloadPublisher,
                         Boolean.valueOf(props.getProperty(DownloadArtifactsWorker.FAIL)));
+                downloadPublisher.clear();
             }
             return null;
         }

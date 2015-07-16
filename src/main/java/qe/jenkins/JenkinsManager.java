@@ -174,7 +174,10 @@ public class JenkinsManager {
         final long contentLength = con.getContentLengthLong();
         File destFileFile = new File(destFile);
         if(!destFileFile.exists()){
-            FileUtils.forceMkdir(destFileFile.getParentFile());
+            File parent = destFileFile.getParentFile();
+            if(parent != null){
+                FileUtils.forceMkdir(parent);
+            }
             destFileFile.createNewFile();
         }
         try(InputStream is = con.getInputStream();
