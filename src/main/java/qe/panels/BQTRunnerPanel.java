@@ -43,13 +43,13 @@ public class BQTRunnerPanel extends JPanel {
 	/**
 	 * The logger.
 	 */
-	private static final Logger LOGGER = LoggerFactory.getLogger(BQTRunnerPanel.class);
+	private static final Logger LOG = LoggerFactory.getLogger(BQTRunnerPanel.class);
 	
 	/**
 	 * BQT tool properties.
 	 */
 	public static interface BQTProperties { 
-		//keys for properties for bqt-distro
+		//keys of properties for bqt-distro
 		public static final String SCENARIO_FILE_PROP = "scenario.file";
 		public static final String RESULT_MODE_PROP = "result.mode";
 		public static final String QUERYSET_ARTIFACTS_DIR_PROP = "queryset.artifacts.dir";
@@ -192,7 +192,7 @@ public class BQTRunnerPanel extends JPanel {
 		if(runningInstance == null){
 			return true;
 		}
-		return cancelActualJob(true);
+		return cancelActualJob();
 	}
 	
 	/**
@@ -205,11 +205,9 @@ public class BQTRunnerPanel extends JPanel {
 	 * Method supposes that the BQT-job is running.
 	 * </p>
 	 * 
-	 * @param disposeLogFrame If the BQT-job is running and a BQT-log-frame is visible,
-	 * 		then the frame will be disposed.
 	 * @return true, if actual job has been canceled, false otherwise
 	 */
-	public boolean cancelActualJob(boolean disposeLogFrame){
+	public boolean cancelActualJob(){
 		int result = JOptionPane.showConfirmDialog(getWindowAncestor(), "BQT is still running. Do you want to interrupt it?");
 		if(result == JOptionPane.YES_OPTION){
 			if(runningInstance != null){
@@ -259,7 +257,7 @@ public class BQTRunnerPanel extends JPanel {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			if(runningInstance != null){
-				cancelActualJob(false);
+				cancelActualJob();
 			}
 		}
 	}
@@ -277,10 +275,10 @@ public class BQTRunnerPanel extends JPanel {
 		protected Void doInBackground() throws Exception {
 			Properties props = getProperties();
 			bqtLogPane.setText("");
-			LOGGER.info("Starting BQT with properties: " + props + ".");
+			LOG.info("Starting BQT with properties: " + props + ".");
 			status.setStatus("IN PROGRESS", Color.ORANGE); 
 			new TestClient().runTest(props);
-			LOGGER.debug("BQT ended.");
+			LOG.debug("BQT ended.");
 			return null;
 		}
 		
@@ -288,10 +286,10 @@ public class BQTRunnerPanel extends JPanel {
 		protected void done() {
 			runningInstance = null;
 			try{
-				LOGGER.debug("Checking result.");
+				LOG.debug("Checking result.");
 				get();
 				status.setStatus("DONE", Color.GREEN);
-				LOGGER.debug("Result OK.");
+				LOG.debug("Result OK.");
 			} catch (ExecutionException ex){
 				Utils.showMessageDialog(getWindowAncestor(), Level.WARN,
 						"Task ends with an exception: " + ex.getCause().getMessage() + "."

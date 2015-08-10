@@ -3,6 +3,9 @@ package qe.jenkins;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import qe.exception.JenkinsException;
 import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 
@@ -18,6 +21,11 @@ import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
  */
 public class JenkinsBuild implements Comparable<JenkinsBuild>{
 
+    /**
+     * The logger.
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(JenkinsBuild.class);
+    
     /**
      * Number of this build.
      */
@@ -195,17 +203,23 @@ public class JenkinsBuild implements Comparable<JenkinsBuild>{
     
     public void setStatusOfPendingConfigurations(){
         if(status == JenkinsStatus.BUILDING){
-            for(JenkinsActiveConfiguration jac : pendingActiveConfigurations){
-                jac.setStatus(JenkinsStatus.PENDING);
-            }
+            setStatusOfPendingConfigurations(JenkinsStatus.PENDING);
         } else if(status == JenkinsStatus.ABORTED){
-            for(JenkinsActiveConfiguration jac : pendingActiveConfigurations){
-                jac.setStatus(JenkinsStatus.ABORTED);
-            }
+            setStatusOfPendingConfigurations(JenkinsStatus.ABORTED);
         } else {
             if(!pendingActiveConfigurations.isEmpty()){
-                throw new IllegalStateException("Build finished normally but contains pending active configurations.");
+                // TODO only warning?
+                // TODO we need a better check
+                LOG.error("Build finished normally but contains pending active configurations.");
+//                throw new IllegalStateException("Build finished normally but contains pending active configurations.");
             }
+            setStatusOfPendingConfigurations(JenkinsStatus.NONE);
+        }
+    }
+    
+    private void setStatusOfPendingConfigurations(JenkinsStatus js){
+        for(JenkinsActiveConfiguration jac : pendingActiveConfigurations){
+            jac.setStatus(js);
         }
     }
     

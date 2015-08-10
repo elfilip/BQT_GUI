@@ -26,11 +26,7 @@
         </RollingRandomAccessFile>
 	</Appenders>
 	<Loggers>
-		<Logger name="org.jboss.bqt.client" level="INFO" additivity="false">
-			<AppenderRef ref="BQT_GUI" />
-			<AppenderRef ref="BQT_FILE" />
-		</Logger>
-		<Logger name="org.jboss.bqt.framework" level="INFO" additivity="false">
+		<Logger name="org.jboss.bqt" level="INFO" additivity="false">
 			<AppenderRef ref="BQT_GUI" />
 			<AppenderRef ref="BQT_FILE" />
 		</Logger>

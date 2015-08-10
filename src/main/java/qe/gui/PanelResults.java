@@ -38,10 +38,16 @@ import qe.utils.Utils;
  *
  */
 public class PanelResults extends TabbedPanel {
-	private static final Logger logger = LoggerFactory.getLogger(PanelResults.class);
+	
+    private static final Logger logger = LoggerFactory.getLogger(PanelResults.class);
+    private static final int MAJOR = 2;
+    private static final int MINOR = 1;
+	
 	private JTable table;
 	private ResultGetter results;
 	private PanelDetails panel_details;
+    private int[][] highlight;
+
 
 	public PanelResults(ResultGetter results, PanelDetails panel_details) {
 		super();
@@ -102,7 +108,7 @@ public class PanelResults extends TabbedPanel {
 		addRows(table); // fills table with data
 		scrollPane.setViewportView(table);
 
-		// Button for refresing test results
+		// Button for refreshing test results
 		JButton btnNewButton = new JButton("Refresh");
 		RefreshResults.setRefreshButton(btnNewButton);
 		btnNewButton.addActionListener(new ActionListener() {
@@ -141,19 +147,36 @@ public class PanelResults extends TabbedPanel {
 		model.setRowCount(0);
 		List<String> scenarios = new ArrayList<String>(map.keySet());
 		Collections.sort(scenarios);
+		
+		int columns = 5;
+		highlight = new int[scenarios.size()][columns];
+		int rowI = 0;
 		for(String scen : scenarios){
 		    TestResult res = map.get(scen);
-		    Object[] row = new Object[5];
+		    Object[] row = new Object[columns];
             row[0] = scen;
             row[1] = res.getNumberOfSuccessfulTests();
             row[2] = res.getNumberOfErrorTests();
             row[3] = res.getNumberOfTotalTests();
             row[4] = res.getNumberOfSkippedTests();
+            boolean hasFailed = res.getNumberOfErrorTests() != 0;
+            boolean hasSkipped = res.getNumberOfSkippedTests() != 0;
+            if(hasFailed || hasSkipped){
+                for(int i = 0; i < columns; i++){
+                    highlight[rowI][i] = MINOR;
+                }
+                if(hasFailed){
+                    highlight[rowI][2] = MAJOR;
+                }
+                if(hasSkipped){
+                    highlight[rowI][4] = MAJOR;
+                }
+            }
+            rowI++;
             model.addRow(row);
-            
 		}
 	}
-
+	
 	private JTabbedPane getParentPane() {
 		if (panel.getParent() instanceof JTabbedPane) {
 			return (JTabbedPane) panel.getParent();
@@ -164,30 +187,35 @@ public class PanelResults extends TabbedPanel {
 	
 	private class Renderer implements TableCellRenderer {
         
-	    private final Color col = new Color(240,189,189);
+	    private final Color colorMajorHighlight = new Color(240, 189, 189);
+	    private final Color colorMinorHighlight = new Color(206, 255, 168);
 	    private final Map<String, JLabel> labels = new HashMap<>();
 	    
-        @Override
+	    @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel text = getTextLabel(table, row, column);
+            Color color = Color.WHITE;
+            boolean opaque = false;
+            if(highlight[row][column] == MAJOR){
+                color = colorMajorHighlight;
+                opaque = true;
+            } else if(highlight[row][column] == MINOR){
+                color = colorMinorHighlight;
+                opaque = true;
+            }
+            text.setText(String.valueOf(value));
+            text.setOpaque(opaque);
+            text.setBackground(color);
+            return text;
+        }
+
+        private JLabel getTextLabel(JTable table, int row, int column) {
             JLabel text = labels.get(row + " " + column);
             if(text == null){
                 text = new JLabel();
                 text.setFont(table.getFont());
                 labels.put(row + " " + column, text);
-            }
-            text.setText(String.valueOf(value));
-            text.setOpaque(false);
-            text.setBackground(Color.WHITE);
-            if(column > 1 && column != 3){
-                try{
-                    if(Integer.parseInt(String.valueOf(value)) > 0){
-                        text.setOpaque(true);
-                        text.setBackground(col);
-                    }
-                } catch (NumberFormatException ex){
-                    logger.debug("Value is not a number - {} [row {}, column {}]", value, row, column);
-                }
             }
             return text;
         }
