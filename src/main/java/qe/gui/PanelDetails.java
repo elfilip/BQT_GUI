@@ -20,6 +20,7 @@ import javax.swing.AbstractButton;
 import javax.swing.BoundedRangeModel;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultRowSorter;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -29,12 +30,16 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.MutableComboBoxModel;
+import javax.swing.RowSorter;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SortOrder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 import org.apache.logging.log4j.Level;
 import org.slf4j.Logger;
@@ -75,6 +80,7 @@ public class PanelDetails extends TabbedPanel {
 	private ResultGetter results;
 	private JRadioButton radioButQueries;
 	private JRadioButton radioButFilenames;
+	private TableRowSorter<TableModel> sorter;
 
 	/**
 	 * 
@@ -137,7 +143,7 @@ public class PanelDetails extends TabbedPanel {
 							}
 							textAreaActualRes.setText(f.getActualResult());
 							textAreaExpectedRest.setText(f.getExpectedResult());
-							txtQueryName.setText(f.getQueryName());
+							txtQueryName.setText(f.getQuery());
 							txtErrorErrorError.setText(f.getCompareErrors().get(0));
 							// tables
 							tableActualResult.parseXML(f.getActualResult());
@@ -155,7 +161,9 @@ public class PanelDetails extends TabbedPanel {
 						}
 					}
 				});
-
+        //tableErrorList.setAutoCreateRowSorter(true);
+		sorter = new TableRowSorter<>(tableErrorList.getModel());
+		tableErrorList.setRowSorter(sorter);
 		// Combobox for selecting test
 		@SuppressWarnings("serial")
 		class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
@@ -176,9 +184,13 @@ public class PanelDetails extends TabbedPanel {
 		        AbstractButton radioButton = (AbstractButton) actionEvent.getSource();
 		        if(radioButton.getActionCommand().equals("query")){
 		        	showCompareErrors(results.getCurrentTest(),1);
+					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
+
 		        }else if(radioButton.getActionCommand().equals("filename")){
 		        	showCompareErrors(results.getCurrentTest(),0);
+					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
 		        }
+		
 		      }
 		    };
 	    
@@ -234,7 +246,7 @@ public class PanelDetails extends TabbedPanel {
 		panel.add(comboBoxName, gbc_comboBoxName);
 
 		// Label Query Name:
-		JLabel lblQueryName = new JLabel("Query Name:");
+		JLabel lblQueryName = new JLabel("Query:");
 		GridBagConstraints gbc_lblQueryName = new GridBagConstraints();
 		gbc_lblQueryName.insets = new Insets(0, 0, 5, 5);
 		gbc_lblQueryName.anchor = GridBagConstraints.EAST;
@@ -242,7 +254,7 @@ public class PanelDetails extends TabbedPanel {
 		gbc_lblQueryName.gridy = 0;
 		panel.add(lblQueryName, gbc_lblQueryName);
 
-		// Test field for query name
+		// Text field for query name
 		txtQueryName = new JTextField();
 		txtQueryName.setText("Name of the query");
 		GridBagConstraints gbc_txtQueryName = new GridBagConstraints();
@@ -586,6 +598,11 @@ public class PanelDetails extends TabbedPanel {
 		for (Entry<String, QueryFailure> failure : result.getFailures().entrySet()) {
 			model.addRow(new Object[] { failure.getKey(),failure.getValue().getFileName() });
 		}
+		List<RowSorter.SortKey> sortKeys = new ArrayList<>();		 
+		int columnIndexToSort = 1;
+		sortKeys.add(new RowSorter.SortKey(columnIndexToSort, SortOrder.ASCENDING)); 
+		sorter.setSortKeys(sortKeys);
+		
 	}
 
 	/**
