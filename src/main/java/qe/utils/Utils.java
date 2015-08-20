@@ -189,6 +189,8 @@ public class Utils {
 	 * @param e Assigned throwable or null
 	 */
 	public static void showMessageDialog(JFrame rootFrame,Level level, String message, Throwable e){
+	    Exception ex = new Exception();
+	    System.out.println("Called from: " + ex.getStackTrace()[1]);
 		if(level==Level.INFO){
 			logger.info(message,e);
 			JOptionPane.showMessageDialog(rootFrame,message);

@@ -11,14 +11,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -30,7 +32,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -48,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import qe.entity.result.RefreshResults;
 import qe.entity.settings.Settings;
+import qe.gui.DownloadManager;
 import qe.jenkins.JenkinsActiveConfiguration;
 import qe.jenkins.JenkinsBuild;
 import qe.jenkins.JenkinsJob;
@@ -65,11 +67,13 @@ import qe.utils.Utils;
 public class JenkinsPanel extends JPanel {
 
     private static final long serialVersionUID = -8886425441947147863L;
-
+    
     /**
      * The logger.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(JenkinsPanel.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JenkinsPanel.class);
+    
+    private ExecutorService executorService = null;
     
     private StatusPanel status;
     
@@ -88,6 +92,9 @@ public class JenkinsPanel extends JPanel {
     
     private JButton showResults;
     
+    private DownloadManager manager;
+    private JButton showDownloadManagerButton;
+    
     private JenkinsBuildPanel jenkinsBuildPanel;
     private JScrollPane jenkinsBuildPane;
     
@@ -103,14 +110,12 @@ public class JenkinsPanel extends JPanel {
     private final SaveToSettingsFileAction saveJobName = new SaveJobName();
     private final SaveToSettingsFileAction saveDownloadDir = new SaveDownloadDir();
     
-    private final DownloadPublisher downloadPublisher = new StatusDownloadPublisher();
+    private final StatusDownloadPublisher downloadPublisher = new StatusDownloadPublisher();
     
     private JenkinsJob jenkinsJob;
     
     private SelectJobViewWorker selectJobViewWorker;
     private ShowJobWorker showJobWorker;
-    private DownloadArtifactsWorker downloadArtifactsWorker;
-    private DownloadLogWorker downloadLogWorker;
     private ShowLogWorker showLogWorker;
     
     /**
@@ -119,7 +124,7 @@ public class JenkinsPanel extends JPanel {
     public JenkinsPanel(){
         super();
         init();
-        LOGGER.info("Jenkis panel has been initialized.");
+        LOG.info("Jenkis panel has been initialized.");
     }
     
     /**
@@ -133,6 +138,7 @@ public class JenkinsPanel extends JPanel {
         initJobInfoPanel();
         initMenu();
         initDefaultValues();
+        initDownloadManager();
         
         GroupLayout gl = new GroupLayout(this);
         gl.setAutoCreateContainerGaps(true);
@@ -141,6 +147,7 @@ public class JenkinsPanel extends JPanel {
             .addGroup(gl.createParallelGroup()
                 .addComponent(showJobButton)
                 .addComponent(showResults)
+                .addComponent(showDownloadManagerButton)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
                 .addComponent(downloadCustomArtifactsOfNode)
@@ -169,6 +176,8 @@ public class JenkinsPanel extends JPanel {
             .addGroup(gl.createSequentialGroup()
                 .addComponent(showJobButton)
                 .addComponent(showResults)
+                .addGap(25)
+                .addComponent(showDownloadManagerButton)
                 .addGap(25)
                 .addComponent(downloadAllArtifactsOfNode)
                 .addComponent(downloadAllArtifactsOfBuild)
@@ -200,9 +209,15 @@ public class JenkinsPanel extends JPanel {
         gl.linkSize(selectJobButton, selectViewButton, selectDownloadDirButton);
         gl.linkSize(showJobButton, downloadAllArtifactsOfBuild, downloadAllArtifactsOfNode,
                 downloadCustomArtifactsOfNode, showResults, downloadConsoleLogOfNode,
-                downloadConsoleLogsOfBuild, showLogOfNode);
+                downloadConsoleLogsOfBuild, showLogOfNode, showDownloadManagerButton);
         
         setLayout(gl);
+    }
+    
+    private void initDownloadManager(){
+        manager = new DownloadManager();
+        showDownloadManagerButton = new JButton("Show download manager");
+        showDownloadManagerButton.addActionListener(new ShowDownloadManagerListener());
     }
     
     /**
@@ -325,7 +340,7 @@ public class JenkinsPanel extends JPanel {
         @Override
         public void save() {
             Settings.getInstance().setJenkinsView(viewName.getText());
-            LOGGER.info("Setting jenkins view name to {}.", viewName.getText());
+            LOG.info("Setting jenkins view name to {}.", viewName.getText());
         }
     }
     
@@ -333,7 +348,7 @@ public class JenkinsPanel extends JPanel {
         @Override
         public void save() {
             Settings.getInstance().setJenkinsJob(jobName.getText());
-            LOGGER.info("Setting jenkins job name to {}.", jobName.getText());
+            LOG.info("Setting jenkins job name to {}.", jobName.getText());
         }
     }
     
@@ -341,7 +356,7 @@ public class JenkinsPanel extends JPanel {
         @Override
         public void save() {
             Settings.getInstance().setJenkinsDownloadDir(downloadDir.getText());
-            LOGGER.info("Setting jenkins download directory to {}.", downloadDir.getText());
+            LOG.info("Setting jenkins download directory to {}.", downloadDir.getText());
         }
     }
     
@@ -364,7 +379,7 @@ public class JenkinsPanel extends JPanel {
             return;
         }
         selectJobViewWorker = new SelectJobViewWorker(type);
-        selectJobViewWorker.execute();
+        executeWorker(selectJobViewWorker);
     }
     
     private <T,K> boolean notRunning(SwingWorker<T, K> w){
@@ -405,6 +420,30 @@ public class JenkinsPanel extends JPanel {
             return false;
         }
         return true;
+    }
+    
+    private void showDownloadManager(){
+        if(!manager.isVisible()){
+            manager.setLocationRelativeTo(getWindowAncestor());
+            manager.pack();
+            manager.setVisible(true);
+        } else {
+            manager.toFront();
+        }
+    }
+    
+    private class ShowDownloadManagerListener implements ActionListener{
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            showDownloadManager();
+        }
+    }
+    
+    private <T, K> void executeWorker(SwingWorker<T, K> worker){
+        if(executorService == null){
+            executorService = Executors.newCachedThreadPool();
+        }
+        executorService.submit(worker);
     }
     
     /**
@@ -459,7 +498,7 @@ public class JenkinsPanel extends JPanel {
          * @param options
          */
         private void showDialog(List<String> options){
-            LOGGER.debug("Options to select: {}", options);
+            LOG.debug("Options to select: {}", options);
             if(options == null || options.isEmpty()){
                 Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.DEBUG,
                         "Nothing to select.", null);
@@ -542,7 +581,7 @@ public class JenkinsPanel extends JPanel {
                 return;
             }
             showJobWorker = new ShowJobWorker();
-            showJobWorker.execute();
+            executeWorker(showJobWorker);
         }
     }
 
@@ -582,46 +621,6 @@ public class JenkinsPanel extends JPanel {
         }
     }
 
-    /**
-     * Checks if all required information have been set.
-     *  
-     * @return
-     */
-    private <T, K> boolean checkRequiredJenkinsSettingsBeforeDownload(SwingWorker<T, K> worker){
-        if(!notRunning(worker)){
-            return false;
-        }
-        if(!needJenkinJob()){
-            return false;
-        }
-        if(!needBuildNumber()){
-            return false;
-        }
-        File downloadDirFile = new File(downloadDir.getText());
-        if(downloadDirFile.exists()){
-            if(!downloadDirFile.isDirectory()){
-                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.WARN,
-                        "Download directory is not a directory.",
-                        null);
-                return false;
-            }
-            File[] dirContent = downloadDirFile.listFiles();
-            if(dirContent != null && dirContent.length != 0){
-                int option = JOptionPane.showConfirmDialog(getWindowAncestor(),
-                                "Download direcotry is not empty. Some files may be overridden."
-                                + System.lineSeparator() + System.lineSeparator()
-                                + "Would you like to continue?",
-                        "Download directory",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-                if(option != JOptionPane.YES_OPTION){
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     private JenkinsBuild getSelectedBuild() {
         Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
         JenkinsBuild actualBuild = null;
@@ -635,6 +634,12 @@ public class JenkinsPanel extends JPanel {
         return actualBuild;
     }
 
+    private static int ID = Integer.MIN_VALUE;
+    
+    private static synchronized int getNextDownloadID(){
+        return ID++;
+    }
+    
     /**
      * Downloads all artifacts of node (active configuration).
      * 
@@ -644,13 +649,11 @@ public class JenkinsPanel extends JPanel {
     private class DownloadAllArtifactsOfNodeActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
-                return;
-            }
             if(!needNode()){
                 return;
             }
-            String destFile = "1.zip";
+            int id = getNextDownloadID();
+            String destFile = id + ".zip";
             File downloadDirFile = FileUtils.getFile(downloadDir.getText(),
                     jenkinsBuildPanel.getJobName(),
                     jenkinsBuildPanel.getSelectedBuildNumber(),
@@ -662,10 +665,8 @@ public class JenkinsPanel extends JPanel {
             prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
             prop.put(DownloadArtifactsWorker.FAIL, true);
             
-            List<Properties> props = new ArrayList<>();
-            props.add(prop);
-            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
-            downloadArtifactsWorker.execute();
+            DownloadArtifactsWorker downloadArtifactsWorker = new DownloadArtifactsWorker(prop, id);
+            executeWorker(downloadArtifactsWorker);
         }
     }
 
@@ -678,28 +679,23 @@ public class JenkinsPanel extends JPanel {
     private class DownloadAllArtifactsOfBuildActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
-                return;
-            }
             JenkinsBuild actualBuild = getSelectedBuild();
             
-                    List<Properties> props = new ArrayList<>();
             String basePath = downloadDir.getText() + File.separator
                     + jenkinsBuildPanel.getJobName() + File.separator
                     + actualBuild.getBuildNumber();
-            int i = 0;
             for(JenkinsActiveConfiguration jac : actualBuild.getActiveConfigurations()){
+                int id = getNextDownloadID();
                 File downloadDirFile = new File(basePath,
                         jac.getxValue() + File.separator + jac.getyValue());
                 Properties prop = new Properties();
                 prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
-                prop.put(DownloadArtifactsWorker.FILE, i++ + ".zip");
+                prop.put(DownloadArtifactsWorker.FILE, id + ".zip");
                 prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
                 prop.put(DownloadArtifactsWorker.FAIL, false);
-                props.add(prop);
+                DownloadArtifactsWorker downloadArtifactsWorker = new DownloadArtifactsWorker(prop, id);
+                executeWorker(downloadArtifactsWorker);
             }
-            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
-            downloadArtifactsWorker.execute();
         }
     }
     
@@ -712,15 +708,12 @@ public class JenkinsPanel extends JPanel {
     private class DownloadCustomArtifactsOfNodeActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadArtifactsWorker)){
-                return;
-            }
             // TODO fill properties
             
-            List<Properties> props = new ArrayList<>();
+            Properties props = new Properties();
             
-            downloadArtifactsWorker = new DownloadArtifactsWorker(props);
-            downloadArtifactsWorker.execute();
+            DownloadArtifactsWorker downloadArtifactsWorker = new DownloadArtifactsWorker(props, getNextDownloadID());
+            executeWorker(downloadArtifactsWorker);
         }
     }
 
@@ -738,66 +731,67 @@ public class JenkinsPanel extends JPanel {
         private static final String UNZIP_FILE = "unzip.file";
         private static final String ARTIFACTS_PATH = "path";
         
-        private final List<Properties> toDownload;
+        private final Properties toDownload;
+        private final int downloadID;
         
-        private DownloadArtifactsWorker(List<Properties> toDownload) {
+        private DownloadArtifactsWorker(Properties toDownload, int downloadID) {
             super();
             this.toDownload = toDownload;
+            this.downloadID = downloadID;
         } 
         
         @Override
         protected Void doInBackground() throws Exception {
-            // TODO - parallel downloads
-            // TODO - cancel button
-            for(Properties p : toDownload){
-                JenkinsManager.getArtifactsOfNode(
-                        p.getProperty(URL),
-                        p.getProperty(ARTIFACTS_PATH),
-                        p.getProperty(FILE),
-                        downloadPublisher,
-                        Boolean.valueOf(p.getProperty(FAIL)));
-                downloadPublisher.clear();
-            }
+            LOG.debug("Starting download of the artifacts.");
+            downloadPublisher.add(downloadID, "Artifacts: " + toDownload.getProperty(URL));
+            JenkinsManager.getArtifactsOfNode(
+                    toDownload.getProperty(URL),
+                    toDownload.getProperty(ARTIFACTS_PATH),
+                    toDownload.getProperty(FILE),
+                    downloadPublisher,
+                    Boolean.valueOf(toDownload.getProperty(FAIL)),
+                    downloadID);
+            downloadPublisher.clear(downloadID);
             return null;
         }
         
         @Override
         protected void done() {
             try{
-                status.setStatus("Downloading done.");
                 get();
-                status.setStatus("Unziping...");
-                for(Properties p : toDownload){
-                    boolean failIfNotFound = Boolean.valueOf(p.getProperty(FAIL));
-                    File unzipDir = new File(p.getProperty(UNZIP_FILE));
-                    File zipFile = new File(p.getProperty(FILE));
-                    try(FileInputStream fis = new FileInputStream(zipFile);
-                            ZipInputStream zis = new ZipInputStream(fis);
-                            BufferedInputStream bis = new BufferedInputStream(zis)){
-                        ZipEntry ze = zis.getNextEntry();
-                        while(ze!=null){
-                            File newFile = new File(unzipDir, ze.getName());
-                            status.setStatus("File unzip: " + newFile.getAbsolutePath());
-                            new File(newFile.getParent()).mkdirs();
+                downloadPublisher.setStatus(downloadID, "Unziping...");
+                boolean failIfNotFound = Boolean.valueOf(toDownload.getProperty(FAIL));
+                File unzipDir = new File(toDownload.getProperty(UNZIP_FILE));
+                File zipFile = new File(toDownload.getProperty(FILE));
+                int bufferSize = 8192;
+                try(FileInputStream fis = new FileInputStream(zipFile);
+                        ZipInputStream zis = new ZipInputStream(fis);
+                        BufferedInputStream bis = new BufferedInputStream(zis, bufferSize)){
+                    ZipEntry ze = null;
+                    while((ze = zis.getNextEntry()) != null){
+                        File newFile = new File(unzipDir, ze.getName());
+                        if(ze.isDirectory()){
+                            newFile.mkdirs();
+                        } else {
                             try(FileOutputStream fos = new FileOutputStream(newFile);
-                                    BufferedOutputStream bos = new BufferedOutputStream(fos)){       
-                                for(int i; (i = bis.read()) != -1; ) {
-                                    bos.write(i);
+                                    BufferedOutputStream bos = new BufferedOutputStream(fos, bufferSize)){
+                                byte[] buffer = new byte[bufferSize];
+                                for(int i; (i = bis.read(buffer)) != -1; ) {
+                                    bos.write(buffer, 0, i);
                                 }   
                             }
-                            ze = zis.getNextEntry();
-                         }
-                    } catch (IOException ex){
-                        if(failIfNotFound){
-                            Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
-                                    "Error while unzipping file: " + ex.getMessage(), ex);
-                        } else {
-                            LOGGER.warn("Error while unzipping file: " + ex.getMessage());
                         }
+                     }
+                } catch (IOException ex){
+                    if(failIfNotFound){
+                        Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
+                                "Error while unzipping file: " + ex.getMessage(), ex);
+                    } else {
+                        LOG.warn("Error while unzipping file: " + ex.getMessage());
                     }
-                    zipFile.delete();
                 }
-                status.setStatus("Unzipping done.");
+                zipFile.delete();
+                downloadPublisher.setStatus(downloadID, "Unzipping done.");
             } catch(InterruptedException | ExecutionException | CancellationException ex){
                 Throwable t;
                 if(ex instanceof ExecutionException){
@@ -805,10 +799,13 @@ public class JenkinsPanel extends JPanel {
                 } else {
                     t = ex;
                 }
-                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
+                if(t instanceof CancellationException){
+                    LOG.info(t.getMessage());
+                    downloadPublisher.setStatus(downloadID, t.getMessage());
+                } else {
+                    Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
                         t.getMessage(), t);
-            } finally {
-                downloadArtifactsWorker = null;
+                }
             }
         }
     }
@@ -817,17 +814,16 @@ public class JenkinsPanel extends JPanel {
     private class ShowResultsActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("asdfasfasf");
-        	LOGGER.info("Showing test results from Jenkins");
+            LOG.info("Showing test results from Jenkins");
         	if(!needJenkinJob()){
     	        return;
 	        }
         	if(!needBuildNumber()){
         	    return;
             }
-        	LOGGER.info("Vybrany run jex "+ jenkinsBuildPanel.getSelectedXValue());
-        	LOGGER.info("Vybrany run jey "+ jenkinsBuildPanel.getSelectedYValue());
-        	LOGGER.info("Vybrany run jeurl "+ jenkinsBuildPanel.getUrlOfSelectedNode());
+        	LOG.info("Vybrany run jex "+ jenkinsBuildPanel.getSelectedXValue());
+        	LOG.info("Vybrany run jey "+ jenkinsBuildPanel.getSelectedYValue());
+        	LOG.info("Vybrany run jeurl "+ jenkinsBuildPanel.getUrlOfSelectedNode());
         	Set<JenkinsBuild> builds = jenkinsJob.getBuilds();
             JenkinsBuild actualBuild = null;
             String sbn = jenkinsBuildPanel.getSelectedBuildNumber();
@@ -845,7 +841,7 @@ public class JenkinsPanel extends JPanel {
         	        + jenkinsBuildPanel.getJobName() + File.separator
                     + actualBuild.getBuildNumber();
         	File jenkinsResults = new File(basePath,jenkinsBuildPanel.getSelectedXValue() + File.separator + jenkinsBuildPanel.getSelectedYValue());
-        	LOGGER.debug("Searching jenkins results at "+jenkinsResults.getAbsolutePath());
+        	LOG.debug("Searching jenkins results at "+jenkinsResults.getAbsolutePath());
         	File summaryResults=FileLoader.fullTextSearch(jenkinsResults, "Summary_totals.txt");
         	if(summaryResults ==null){
         	    Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,"No test results have been found at the location:\n"+jenkinsResults.getAbsolutePath()+"\nYou must download the results before showing them.",null);
@@ -866,9 +862,6 @@ public class JenkinsPanel extends JPanel {
     private class DownloadConsoleLogOfNodeActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadLogWorker)){
-                return;
-            }
             if(!needNode()){
                 return;
             }
@@ -883,20 +876,15 @@ public class JenkinsPanel extends JPanel {
             props.put(DownloadArtifactsWorker.FILE, downloadDirFile.getAbsolutePath());
             props.put(DownloadArtifactsWorker.FAIL, true);
             
-            downloadLogWorker = new DownloadLogWorker(Arrays.asList(props));
-            downloadLogWorker.execute();
+            DownloadLogWorker downloadLogWorker = new DownloadLogWorker(props, getNextDownloadID());
+            executeWorker(downloadLogWorker);
         }
     }
     
     private class DownloadConsoleLogsOfBuildActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(!checkRequiredJenkinsSettingsBeforeDownload(downloadLogWorker)){
-                return;
-            }
-            
             JenkinsBuild actualBuild = getSelectedBuild();
-            List<Properties> props = new ArrayList<>();
             File basePath = FileUtils.getFile(downloadDir.getText(),
                     jenkinsBuildPanel.getJobName(),
                     actualBuild.getBuildNumber());
@@ -908,40 +896,42 @@ public class JenkinsPanel extends JPanel {
                 prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
                 prop.put(DownloadArtifactsWorker.FILE, downloadDirFile.getAbsolutePath());
                 prop.put(DownloadArtifactsWorker.FAIL, false);
-                props.add(prop);
+                DownloadLogWorker downloadLogWorker = new DownloadLogWorker(prop, getNextDownloadID());
+                executeWorker(downloadLogWorker);
             }
-            downloadLogWorker = new DownloadLogWorker(props);
-            downloadLogWorker.execute();
         }
     }
     
     private class DownloadLogWorker extends SwingWorker<Void, Void>{
         
-        private final List<Properties> toDownload;
+        private final Properties toDownload;
+        private final int downloadID;
         private static final String CONSOLE_LOG = "consoleLog";
         
-        public DownloadLogWorker(List<Properties> toDownload) {
+        private DownloadLogWorker(Properties toDownload, int downloadID) {
             super();
             this.toDownload = toDownload;
+            this.downloadID = downloadID;
         }
 
         @Override
         protected Void doInBackground() throws Exception {
-            for(Properties props : toDownload){
-                JenkinsManager.getConsoleLogOfNode(props.getProperty(DownloadArtifactsWorker.URL),
-                        props.getProperty(DownloadArtifactsWorker.FILE) + File.separator + CONSOLE_LOG,
-                        downloadPublisher,
-                        Boolean.valueOf(props.getProperty(DownloadArtifactsWorker.FAIL)));
-                downloadPublisher.clear();
-            }
+            LOG.debug("Starting download of the console log.");
+            downloadPublisher.add(downloadID, "Console log: " + toDownload.getProperty(DownloadArtifactsWorker.URL));
+            JenkinsManager.getConsoleLogOfNode(toDownload.getProperty(DownloadArtifactsWorker.URL),
+                    toDownload.getProperty(DownloadArtifactsWorker.FILE) + File.separator + CONSOLE_LOG,
+                    downloadPublisher,
+                    Boolean.valueOf(toDownload.getProperty(DownloadArtifactsWorker.FAIL)),
+                    downloadID);
+            downloadPublisher.clear(downloadID);
             return null;
         }
         
         @Override
         protected void done() {
             try{
-                status.setStatus("Downloading done.");
                 get();
+                downloadPublisher.setStatus(downloadID, "Downloading done.");
             } catch(InterruptedException | ExecutionException | CancellationException ex){
                 Throwable t;
                 if(ex instanceof ExecutionException){
@@ -949,10 +939,13 @@ public class JenkinsPanel extends JPanel {
                 } else {
                     t = ex;
                 }
-                Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
+                if(t instanceof CancellationException){
+                    LOG.info(t.getMessage());
+                    downloadPublisher.setStatus(downloadID, t.getMessage());
+                } else {
+                    Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
                         t.getMessage(), t);
-            } finally {
-                downloadLogWorker = null;
+                }
             }
         }
     }
@@ -977,7 +970,7 @@ public class JenkinsPanel extends JPanel {
                 return;
             }
             showLogWorker = new ShowLogWorker(logFile.getAbsolutePath());
-            showLogWorker.execute();
+            executeWorker(showLogWorker);
         }
     }
     
@@ -1047,11 +1040,13 @@ public class JenkinsPanel extends JPanel {
      *
      */
     private class StatusDownloadPublisher implements DownloadPublisher {
-        private volatile long lastSize = 0;
         
         private static final long DEFAULT_PUBLISH_INTERVAL = 500;
         private final String[] SUFIX_iB = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
         private final String[] SUFIX_B = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+        
+        private final Map<Integer, StatusPanel> statuses = new HashMap<>();
+        private final Map<Integer, Long> lastSizes = new HashMap<>();
         
         @Override
         public long publishInterval() {
@@ -1059,13 +1054,13 @@ public class JenkinsPanel extends JPanel {
         }
         
         @Override
-        public void publish(long downloaded, long objectSize) {
+        public void publish(long downloaded, long objectSize, int downloadID) {
             boolean useIB = true;
-            long downloadedSize = downloaded - lastSize;
-            lastSize = downloaded;
+            long downloadedSize = downloaded - lastSizes.get(downloadID).longValue();
+            lastSizes.put(downloadID, downloaded);
             String rate = getSizeInBytes(downloadedSize * (1000.0 / DEFAULT_PUBLISH_INTERVAL), useIB);
             String downloadedSizeInBytes = getSizeInBytes(downloaded, useIB);
-            status.setStatus(new StringBuilder(downloadedSizeInBytes)
+            setStatus(downloadID, new StringBuilder(downloadedSizeInBytes)
                     .append(" / ")
                     .append((objectSize < 0 ? "???" : getSizeInBytes((double)objectSize, useIB)))
                     .append("   [")
@@ -1074,8 +1069,28 @@ public class JenkinsPanel extends JPanel {
         }
         
         @Override
-        public void clear(){
-            lastSize = 0;
+        public void clear(int downloadID){
+            lastSizes.put(downloadID, 0L);
+        }
+        
+        private void add(final int downloadID, String statusTitle){
+            StatusPanel sp = new StatusPanel(statusTitle);
+            statuses.put(downloadID, sp);
+            lastSizes.put(downloadID, 0L);
+            JButton cancelButton = new JButton("Cancel");
+            cancelButton.addActionListener(new ActionListener() {
+                
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    JenkinsManager.cancelActiveDownload(downloadID);
+                }
+            });
+            manager.addDownloadItem(sp, cancelButton);
+            showDownloadManager();
+        }
+        
+        private void setStatus(int downloadID, String status){
+            statuses.get(downloadID).setStatus(status);
         }
         
         private String getSizeInBytes(double d, boolean useIB){

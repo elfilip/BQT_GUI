@@ -9,9 +9,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CancellationException;
 
 import org.apache.commons.io.FileUtils;
 import org.jsoup.Connection;
@@ -54,6 +57,10 @@ public class JenkinsManager {
      * The tree argument.
      */
     private static final String TREE= "?tree=";
+    /**
+     * The default size of the buffer
+     */
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
     
     /**
      * Private constructor - all methods are static.
@@ -125,7 +132,7 @@ public class JenkinsManager {
      * @throws IOException download or storing to local file system
      */
     public static void getArtifactsOfNode(String url, String artifactsPath,
-            String destFile, DownloadPublisher publisher, boolean failIfNotFound) 
+            String destFile, DownloadPublisher publisher, boolean failIfNotFound, int downloadID) 
             throws JenkinsException, IOException{
         check(url, "URL cannot be empty.");
         check(destFile, "Destination file cannot be empty.");
@@ -135,7 +142,7 @@ public class JenkinsManager {
             urlBuilder.append(artifactsPath);
         }
         addZip(urlBuilder);
-        downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);        
+        downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound, downloadID);        
     }
     
     /**
@@ -148,12 +155,12 @@ public class JenkinsManager {
      * @throws JenkinsException if specified artifacts are not found
      * @throws IOException download or storing to local file system
      */
-    public static void getConsoleLogOfNode(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound)
+    public static void getConsoleLogOfNode(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound, int downloadID)
             throws JenkinsException, IOException{
         check(url, "URL cannot be empty");
         check(destFile, "Destination file cannot be empty.");
         StringBuilder urlBuilder = new StringBuilder(url).append("/consoleText/");
-        downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound);
+        downloadFile(urlBuilder.toString(), destFile, publisher, failIfNotFound, downloadID);
     }
     
     /**
@@ -167,7 +174,7 @@ public class JenkinsManager {
      * @throws JenkinsException if specified file is not found
      * @throws IOException download or storing to local file system
      */
-    private static void downloadFile(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound) throws JenkinsException, IOException{
+    private static void downloadFile(String url, String destFile, final DownloadPublisher publisher, boolean failIfNotFound, int downloadID) throws JenkinsException, IOException{
         LOGGER.info("Downloading file: {} to {}.", url, destFile);
         URL u = new URL(url);
         URLConnection con = u.openConnection();
@@ -180,16 +187,20 @@ public class JenkinsManager {
             }
             destFileFile.createNewFile();
         }
+        Holder holder = new Holder();
         try(InputStream is = con.getInputStream();
-                BufferedInputStream bis = new BufferedInputStream(is);
+                BufferedInputStream bis = new BufferedInputStream(is, DEFAULT_BUFFER_SIZE);
                 FileOutputStream fos = new FileOutputStream(destFile, false);
-                BufferedOutputStream bos = new BufferedOutputStream(fos)){
-            final DownloadTimerTask task = new DownloadTimerTask(contentLength, publisher);
+                BufferedOutputStream bos = new BufferedOutputStream(fos, DEFAULT_BUFFER_SIZE)){
+            addToActiveDownloads(downloadID, holder);
+            final DownloadTimerTask task = new DownloadTimerTask(contentLength, publisher, downloadID);
             Timer timer = new Timer();
             timer.schedule(task, 0, publisher.publishInterval());
-            for(int i; (i = bis.read()) != -1;){
-                bos.write(i);
-                task.size++;
+            int i = 0;
+            byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+            while((i = bis.read(buffer)) != -1 && !holder.isCanceled){
+                bos.write(buffer, 0, i);
+                task.size += i;
             }
             timer.cancel();
             timer.purge();
@@ -199,7 +210,43 @@ public class JenkinsManager {
             } else {
                 LOGGER.warn("Artifact not found: " + ex.getMessage());
             }
+        } finally {
+            removeFromActiveDownloads(downloadID);
+            if(holder.isCanceled){
+                destFileFile.delete();
+                throw new CancellationException("Download canceled.");
+            }
         }
+    }
+    
+    private static void addToActiveDownloads(int id, Holder holder){
+        synchronized (activeDownloads) {
+            if(activeDownloads.containsKey(id)){
+                throw new IllegalArgumentException("Active download with id " + id + " alredy exists.");
+            }
+            activeDownloads.put(id, holder);
+        }
+    }
+    
+    private static void removeFromActiveDownloads(int id){
+        synchronized (activeDownloads) {
+            activeDownloads.remove(id);
+        }
+    }
+    
+    public static void cancelActiveDownload(int id){
+        synchronized (activeDownloads) {
+            Holder h = activeDownloads.get(id);
+            if(h != null){
+                h.isCanceled = true;
+            }
+        }
+    }
+    
+    private static final Map<Integer, Holder> activeDownloads = new HashMap<>();
+    
+    private static class Holder {
+        private boolean isCanceled = false;
     }
     
     /**
@@ -212,16 +259,18 @@ public class JenkinsManager {
         private long size = 0;
         private final long contentLength;
         private final DownloadPublisher publisher;
+        private final int downloadID;
         
-        private DownloadTimerTask(long contentLength, DownloadPublisher publisher) {
+        private DownloadTimerTask(long contentLength, DownloadPublisher publisher, int downloadID) {
             super();
             this.contentLength = contentLength;
             this.publisher = publisher;
+            this.downloadID = downloadID;
         }
 
         @Override
         public void run() {
-            publisher.publish(size, contentLength);
+            publisher.publish(size, contentLength, downloadID);
         }
     }
     
@@ -237,8 +286,9 @@ public class JenkinsManager {
          * 
          * @param downloaded downloaded size
          * @param objectSize object's size
+         * @param downloadID id of download
          */
-        void publish(long downloaded, long objectSize);
+        void publish(long downloaded, long objectSize, int downloadID);
         
         /**
          * Returns publish interval.
@@ -249,8 +299,10 @@ public class JenkinsManager {
         
         /**
          * Clears this publisher.
+         * 
+         * @param downloadID id of download
          */
-        void clear();
+        void clear(int downloadID);
     }
     
     /**

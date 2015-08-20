@@ -14,10 +14,16 @@ public class StatusPanel extends JPanel {
 
     private JTextField status;
     private JLabel statusLabel;
+    private String title;
+    
+    public StatusPanel(String title){
+        super();
+        this.title = title;
+        init();
+    }
     
     public StatusPanel() {
-        super();
-        init();
+        this("Status");
     }
     
     private void init(){
@@ -25,7 +31,7 @@ public class StatusPanel extends JPanel {
         status.setEditable(false);
         status.setFont(status.getFont().deriveFont(Font.BOLD, 20));
         status.setBorder(new EtchedBorder(EtchedBorder.RAISED));
-        statusLabel = new JLabel("Status");
+        statusLabel = new JLabel(title);
         
         GroupLayout gl = new GroupLayout(this);
         gl.setAutoCreateContainerGaps(false);
