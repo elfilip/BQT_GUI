@@ -42,7 +42,7 @@ public final class GUIAppender extends AbstractAppender {
 	
 	private static final Map<String, JTextPane> TEXT_PANES = new HashMap<String, JTextPane>();
 	
-	private JTextPane textPane;
+	private final JTextPane textPane;
 	
 	/**
 	 * Create a new instance.
@@ -55,11 +55,11 @@ public final class GUIAppender extends AbstractAppender {
 	protected GUIAppender(String name, Filter filter,
 			Layout<? extends Serializable> layout) {
 		super(name, filter, layout, false);
+		textPane = new JTextPane();
 		initTextPane();
 	}
 	
 	private void initTextPane(){
-		textPane = new JTextPane();
 		textPane.setEditable(false);
 		TEXT_PANES.put(getName(), textPane);
 		StyledDocument doc = textPane.getStyledDocument();
@@ -126,8 +126,10 @@ public final class GUIAppender extends AbstractAppender {
 			StyledDocument doc = textPane.getStyledDocument();
 			Style s = doc.getStyle(level.name());
 			s = s == null ? doc.getStyle("default") : s;
-			doc.insertString(doc.getLength(), text, s);
-            textPane.setCaretPosition(doc.getLength());
+			synchronized (textPane) {
+			    doc.insertString(doc.getLength(), text, s);
+			    textPane.setCaretPosition(doc.getLength());
+            }
 		} catch (BadLocationException e) {
 			e.printStackTrace();
 		}

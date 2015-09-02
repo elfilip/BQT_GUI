@@ -423,6 +423,7 @@ public class JenkinsPanel extends JPanel {
     }
     
     private void showDownloadManager(){
+        LOG.debug("Showing the download manager.");
         if(!manager.isVisible()){
             manager.setLocationRelativeTo(getWindowAncestor());
             manager.pack();
@@ -443,6 +444,7 @@ public class JenkinsPanel extends JPanel {
         if(executorService == null){
             executorService = Executors.newCachedThreadPool();
         }
+        LOG.debug("Submiting worker {}.", worker);
         executorService.submit(worker);
     }
     
@@ -738,7 +740,13 @@ public class JenkinsPanel extends JPanel {
             super();
             this.toDownload = toDownload;
             this.downloadID = downloadID;
+            LOG.debug("Prepared to download {}.", this);
         } 
+        
+        @Override
+        public String toString() {
+            return this.downloadID + " - " + this.toDownload.get(URL);
+        }
         
         @Override
         protected Void doInBackground() throws Exception {
@@ -1077,6 +1085,7 @@ public class JenkinsPanel extends JPanel {
         }
         
         private void add(final int downloadID, String statusTitle){
+            LOG.debug("Adding a new status to the download manager.");
             StatusPanel sp = new StatusPanel(statusTitle);
             statuses.put(downloadID, sp);
             lastSizes.put(downloadID, 0L);
