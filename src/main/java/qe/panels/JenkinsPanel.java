@@ -770,9 +770,12 @@ public class JenkinsPanel extends JPanel {
                     ZipEntry ze = null;
                     while((ze = zis.getNextEntry()) != null){
                         File newFile = new File(unzipDir, ze.getName());
+                        LOG.trace("Zip entry {}", ze);
+                        LOG.trace("New file: {}.", newFile);
                         if(ze.isDirectory()){
-                            newFile.mkdirs();
+                            LOG.trace("Creating directory {} - {}.", newFile, newFile.mkdirs());
                         } else {
+                            LOG.trace("Creating directory {} - {}.", newFile.getParentFile(), newFile.getParentFile().mkdirs());
                             try(FileOutputStream fos = new FileOutputStream(newFile);
                                     BufferedOutputStream bos = new BufferedOutputStream(fos, bufferSize)){
                                 byte[] buffer = new byte[bufferSize];
@@ -787,7 +790,7 @@ public class JenkinsPanel extends JPanel {
                         Utils.showMessageDialog((JFrame)getWindowAncestor(), Level.ERROR,
                                 "Error while unzipping file: " + ex.getMessage(), ex);
                     } else {
-                        LOG.warn("Error while unzipping file: " + ex.getMessage());
+                        LOG.warn("Error while unzipping file: " + ex.getMessage(), ex);
                     }
                 }
                 zipFile.delete();
