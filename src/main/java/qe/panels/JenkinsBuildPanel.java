@@ -2,6 +2,8 @@ package qe.panels;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -59,10 +61,16 @@ public class JenkinsBuildPanel extends JPanel {
     private MatrixHolder matrix = new MatrixHolder();
 
     /**
+     * Parent panel. Will be used to (de)activate buttons.
+     */
+    private final JenkinsPanel parentJenkinsPanel;
+    
+    /**
      * {@inheritDoc}
      */
-    public JenkinsBuildPanel(){
+    public JenkinsBuildPanel(JenkinsPanel parentJenkinsPanel){
         super();
+        this.parentJenkinsPanel = parentJenkinsPanel;
     }
 
     /**
@@ -78,6 +86,7 @@ public class JenkinsBuildPanel extends JPanel {
      * @param job
      */
     public void init(JenkinsJob job){
+        parentJenkinsPanel.buildSelected(false);
         this.jobName = job.getName();
         removeAll();
         for(Enumeration<AbstractButton> e = buildNumberGroup.getElements(); e.hasMoreElements(); ){
@@ -100,6 +109,8 @@ public class JenkinsBuildPanel extends JPanel {
                 public void itemStateChanged(ItemEvent e) {
                     if(e.getStateChange() == ItemEvent.SELECTED){
                         fillMatrix(matrixHolder);
+                        parentJenkinsPanel.buildSelected(true);
+                        parentJenkinsPanel.nodeSelected(getSelectedXValue() != null);
                     }
                 }
             });
@@ -169,6 +180,13 @@ public class JenkinsBuildPanel extends JPanel {
             JPanel p = new JPanel();
             p.add(rbwp);
             rbwp.updateStatus();
+            rbwp.addActionListener(new ActionListener() {
+                
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    parentJenkinsPanel.nodeSelected(true);
+                }
+            });
             holder.buttonGroup.add(rbwp);
             components[yPos + 1][xPos + 1] = p;
         }
