@@ -61,7 +61,25 @@ public class PanelResults extends TabbedPanel {
 		getParent();
 		// Table with results
 		String columnNames[] = { "Name", "Success", "Failed", "Total", "Skipped" };
-		DefaultTableModel model = new DefaultTableModel();
+		DefaultTableModel model = new DefaultTableModel(){
+			 @Override
+	            public Class getColumnClass(int column) {
+	                switch (column) {
+	                    case 0:
+	                        return String.class;
+	                    case 1:
+	                        return Integer.class;
+	                    case 2:
+	                        return Integer.class;
+	                    case 3:
+	                        return Integer.class;
+	                    case 4:
+	                        return Integer.class;
+	                    default:
+	                        return String.class;
+	                }
+	            }
+		};
 		model.setColumnIdentifiers(columnNames);
 		panel.setLayout(new GridBagLayout());
 
@@ -155,10 +173,10 @@ public class PanelResults extends TabbedPanel {
 		    TestResult res = map.get(scen);
 		    Object[] row = new Object[columns];
             row[0] = scen;
-            row[1] = res.getNumberOfSuccessfulTests();
-            row[2] = res.getNumberOfErrorTests();
-            row[3] = res.getNumberOfTotalTests();
-            row[4] = res.getNumberOfSkippedTests();
+            row[1] = new Integer(res.getNumberOfSuccessfulTests());
+            row[2] = new Integer(res.getNumberOfErrorTests());
+            row[3] = new Integer(res.getNumberOfTotalTests());
+            row[4] = new Integer(res.getNumberOfSkippedTests());
             boolean hasFailed = res.getNumberOfErrorTests() != 0;
             boolean hasSkipped = res.getNumberOfSkippedTests() != 0;
             if(hasFailed || hasSkipped){
@@ -218,6 +236,6 @@ public class PanelResults extends TabbedPanel {
                 labels.put(row + " " + column, text);
             }
             return text;
-        }
+        }    
     }
 }
