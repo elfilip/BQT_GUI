@@ -634,4 +634,23 @@ public class PanelDetails extends TabbedPanel {
 		results.setCurrentTest(comboBoxName.getItemAt(index));
 		comboBoxName.setSelectedIndex(index);
 	}
+	
+	/**
+	 * Selects test in the comboBox
+	 * 
+	 * @param index
+	 */
+	public int getIndexOfItem(String name) {
+
+		String item;
+		int i=0;
+		while((item=comboBoxName.getItemAt(i))!=null){
+			if(item.equals(name)){
+			return i;
+			}
+			i++;
+		}
+		return -1;
+
+	}
 }

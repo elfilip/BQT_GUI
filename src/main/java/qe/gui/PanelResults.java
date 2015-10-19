@@ -91,6 +91,7 @@ public class PanelResults extends TabbedPanel {
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane, c2);
 		table = new JTable(model);
+		table.setAutoCreateRowSorter(true);
 		table.setDefaultRenderer(Object.class, new Renderer());
 		table.addMouseListener(new MouseAdapter() { // Listens for clicks on the
 													// table. Switches to details
@@ -100,8 +101,7 @@ public class PanelResults extends TabbedPanel {
 				JTable target = (JTable) e.getSource();
 				int row = target.getSelectedRow();
 				getParentPane().setSelectedIndex(1);
-				table.getModel().getValueAt(row, 0);
-				panel_details.setIndexInCombobox(row);
+				panel_details.setIndexInCombobox(panel_details.getIndexOfItem((String)table.getValueAt(row, 0)));
 				logger.debug("Swithing to panel details and selecting " + table.getModel().getValueAt(row, 0));
 			}
 		});
