@@ -30,11 +30,14 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.MutableComboBoxModel;
+import javax.swing.RowFilter;
 import javax.swing.RowSorter;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SortOrder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -78,9 +81,10 @@ public class PanelDetails extends TabbedPanel {
 	private JButton errListExtendButton;
 	private JComboBox<String> comboBoxName;
 	private ResultGetter results;
-	private JRadioButton radioButQueries;
-	private JRadioButton radioButFilenames;
 	private TableRowSorter<TableModel> sorter;
+	private JTextField errorfilter;
+	JButton switchDisplay;
+	private boolean showingQueries=false;
 
 	/**
 	 * 
@@ -109,7 +113,7 @@ public class PanelDetails extends TabbedPanel {
 		// Table for list of errors for one test - parses files with compare
 		// errors
 		DefaultTableModel errModel = new DefaultTableModel();
-		errModel.setColumnIdentifiers(new Object[] { "Errors","Errors" });
+		errModel.setColumnIdentifiers(new Object[] { "Errors", "Errors" });
 		tableErrorList = new ScrollableTable(errModel);
 		tableErrorList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		tableErrorList.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
@@ -117,20 +121,20 @@ public class PanelDetails extends TabbedPanel {
 
 					@Override
 					public void valueChanged(ListSelectionEvent event) {
-					    if(event.getValueIsAdjusting()){
-					        return; // wait for end of multiple events
-					    }
-					    int row = tableErrorList.getSelectedRow();
+						if (event.getValueIsAdjusting()) {
+							return; // wait for end of multiple events
+						}
+						int row = tableErrorList.getSelectedRow();
 						if (row > -1) {
 
 							if (results.getCurrentTest() == null) {
 								return;
 							}
 							logger.debug("Loading details for query" + tableErrorList.getValueAt(row, 0));
-							//QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
-							QueryFailure f=null;
+							// QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
+							QueryFailure f = null;
 							try {
-								f = results.loadFailureDetails((String)tableErrorList.getValueAt(row, 0));
+								f = results.loadFailureDetails((String) tableErrorList.getValueAt(row, 0));
 							} catch (ResultParsingException e) {
 								Utils.showMessageDialog(rootFrame, Level.ERROR, e.getMessage(), e);
 								return;
@@ -151,17 +155,17 @@ public class PanelDetails extends TabbedPanel {
 							tableActualResult.bindCells(tableExpectedResult);
 							logger.debug("Details loaded for query " + tableErrorList.getValueAt(row, 0));
 						} else {
-						    textAreaActualRes.setText(null);
-                            textAreaExpectedRest.setText(null);
-                            txtQueryName.setText(null);
-                            txtErrorErrorError.setText(null);
-                            // tables
-                            tableActualResult.clearTable();
-                            tableExpectedResult.clearTable();
+							textAreaActualRes.setText(null);
+							textAreaExpectedRest.setText(null);
+							txtQueryName.setText(null);
+							txtErrorErrorError.setText(null);
+							// tables
+							tableActualResult.clearTable();
+							tableExpectedResult.clearTable();
 						}
 					}
 				});
-        //tableErrorList.setAutoCreateRowSorter(true);
+		// tableErrorList.setAutoCreateRowSorter(true);
 		sorter = new TableRowSorter<>(tableErrorList.getModel());
 		tableErrorList.setRowSorter(sorter);
 		// Combobox for selecting test
@@ -169,59 +173,57 @@ public class PanelDetails extends TabbedPanel {
 		class Aaa extends DefaultComboBoxModel<String> implements MutableComboBoxModel<String> {
 
 		}
-		
+		final JButton switchDisplay=new JButton("Show queries");
+		switchDisplay.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+						if(showingQueries==false){					
+							switchDisplay.setText("Show filenames");
+							showCompareErrors(results.getCurrentTest(), 1);
+						}else{
+							switchDisplay.setText("Show queries");
+							showCompareErrors(results.getCurrentTest(), 0);
+						}
+						showingQueries=!showingQueries;
+						((DefaultRowSorter) tableErrorList.getRowSorter()).sort();
+			}
+		});
+		GridBagConstraints gbc_switchDisplay = new GridBagConstraints();
+		gbc_switchDisplay.gridx = 0;
+		gbc_switchDisplay.gridy = 0;
+		gbc_switchDisplay.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_switchDisplay.fill=GridBagConstraints.HORIZONTAL;
+		panel.add(switchDisplay, gbc_switchDisplay);
 
-		//Radio buttons to switch between showing table of queries or filenames
-		radioButQueries = new JRadioButton("Show queries");
-		radioButQueries.setActionCommand("query");
-		radioButQueries.setSelected(true);
-
-	    radioButFilenames = new JRadioButton("Show filenames");
-	    radioButFilenames.setActionCommand("filename");
-
-		ActionListener sliceActionListener = new ActionListener() {
-		      public void actionPerformed(ActionEvent actionEvent) {
-		        AbstractButton radioButton = (AbstractButton) actionEvent.getSource();
-		        if(radioButton.getActionCommand().equals("query")){
-		        	showCompareErrors(results.getCurrentTest(),1);
-					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
-
-		        }else if(radioButton.getActionCommand().equals("filename")){
-		        	showCompareErrors(results.getCurrentTest(),0);
-					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
-		        }
-		
-		      }
-		    };
-	    
-	    radioButFilenames.addActionListener(sliceActionListener);
-	    radioButQueries.addActionListener(sliceActionListener);
-	    //Group the radio buttons.
-	    ButtonGroup group = new ButtonGroup();
-	    group.add(radioButQueries);
-	    group.add(radioButFilenames);
-	    
-	    GridBagConstraints gbc_radioButQuerires = new GridBagConstraints();
-	    gbc_radioButQuerires.gridx = 0;
-	    gbc_radioButQuerires.gridy = 0;
-	    gbc_radioButQuerires.anchor = GridBagConstraints.FIRST_LINE_START;
-	    panel.add(radioButQueries, gbc_radioButQuerires);
-	    
-	    GridBagConstraints gbc_radioButFilenames = new GridBagConstraints();
-	    gbc_radioButFilenames.gridx = 0;
-	    gbc_radioButFilenames.gridy = 1;
-	    gbc_radioButFilenames.anchor = GridBagConstraints.FIRST_LINE_START;
-	    panel.add(radioButFilenames, gbc_radioButFilenames);
-	    
+		errorfilter=new JTextField();
+		errorfilter.getDocument().addDocumentListener(
+	                new DocumentListener() {
+	                    public void changedUpdate(DocumentEvent e) {
+	                    	updateFilter();
+	                    }
+	                    public void insertUpdate(DocumentEvent e) {
+	                    	updateFilter();
+	                    }
+	                    public void removeUpdate(DocumentEvent e) {
+	                    	updateFilter();
+	                    }
+	                });
+		GridBagConstraints gbc_errorfilter = new GridBagConstraints();
+		gbc_errorfilter.gridx = 0;
+		gbc_errorfilter.gridy = 1			;
+		gbc_errorfilter.anchor = GridBagConstraints.SOUTHWEST;
+		gbc_errorfilter.fill=GridBagConstraints.HORIZONTAL;
+		panel.add(errorfilter, gbc_errorfilter);
 		comboBoxName = new JComboBox<String>(new Aaa());
 		comboBoxName.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent arg0) {
 				if (arg0.getStateChange() == ItemEvent.SELECTED) {
 					logger.debug("Selecting test results of scenario " + arg0.getItem().toString());
-					if(radioButQueries.isSelected()){
-						showCompareErrors((String) arg0.getItem(),1);
-					}else{
-						showCompareErrors((String) arg0.getItem(),0);
+					if (showingQueries) {
+						showCompareErrors((String) arg0.getItem(), 1);
+					} else {
+						showCompareErrors((String) arg0.getItem(), 0);
 					}
 
 					if (tableErrorList.getModel().getRowCount() > 0) {
@@ -297,7 +299,7 @@ public class PanelDetails extends TabbedPanel {
 					Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select test failure", null);
 					return;
 				}
-				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row,0));
+				QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
 				ErrorsFrame errFrame = new ErrorsFrame("Errors for " + results.getCurrentTest() + ": " + f.getQueryName());
 				errFrame.initialize().setErrors(f).show();
 			}
@@ -353,11 +355,11 @@ public class PanelDetails extends TabbedPanel {
 		btnNewButton_1.setToolTipText("Saves currents state of expected result");
 		btnNewButton_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-			    int row = tableErrorList.getSelectedRow();
-			    if(row == -1){
-			        Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
-			        return;
-			    }
+				int row = tableErrorList.getSelectedRow();
+				if (row == -1) {
+					Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
+					return;
+				}
 				File expectedResult = null;
 				Document root;
 				try {
@@ -395,15 +397,15 @@ public class PanelDetails extends TabbedPanel {
 		invisible.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-			    int row = tableErrorList.getSelectedRow();
-                if(row == -1){
-                    Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
-                    return;
-                }
+				int row = tableErrorList.getSelectedRow();
+				if (row == -1) {
+					Utils.showMessageDialog(rootFrame, Level.ERROR, "Please select query.", null);
+					return;
+				}
 				File expectedResult = null;
 				Document root;
 				try {
-					StringBuilder sb=new StringBuilder(textAreaActualRes.getText());
+					StringBuilder sb = new StringBuilder(textAreaActualRes.getText());
 					Utils.replaceAll(sb, "actualQueryResults", "expectedQueryResults");
 					Utils.replaceAll(sb, "actualException", "expectedException");
 					root = DomParserFailure.parseString(sb.toString());
@@ -425,7 +427,7 @@ public class PanelDetails extends TabbedPanel {
 					return;
 				}
 				Utils.showMessageDialog(rootFrame, Level.INFO, "Actual Result has been saved in:\n" + expectedResult.getAbsolutePath(), null);
-		
+
 			}
 		});
 		GridBagConstraints gbc_invisible = new GridBagConstraints();
@@ -571,21 +573,21 @@ public class PanelDetails extends TabbedPanel {
 		}
 
 		DefaultTableModel model = (DefaultTableModel) tableErrorList.getModel();
-		if(hiddenColumnIndex==1){
-			if(tableErrorList.getColumnModel().getColumn(1).getMaxWidth()>0){
-    			tableErrorList.getColumnModel().getColumn(0).setMinWidth(tableErrorList.getColumnModel().getColumn(1).getMinWidth());
-    			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(tableErrorList.getColumnModel().getColumn(1).getMaxWidth());
+		if (hiddenColumnIndex == 1) {
+			if (tableErrorList.getColumnModel().getColumn(1).getMaxWidth() > 0) {
+				tableErrorList.getColumnModel().getColumn(0).setMinWidth(tableErrorList.getColumnModel().getColumn(1).getMinWidth());
+				tableErrorList.getColumnModel().getColumn(0).setMaxWidth(tableErrorList.getColumnModel().getColumn(1).getMaxWidth());
 			}
 			tableErrorList.getColumnModel().getColumn(1).setMinWidth(0);
 			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(0);
-		}else if(hiddenColumnIndex==0){
-			if(tableErrorList.getColumnModel().getColumn(0).getMaxWidth()>0){
-    			tableErrorList.getColumnModel().getColumn(1).setMinWidth(tableErrorList.getColumnModel().getColumn(0).getMinWidth());
-    			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(tableErrorList.getColumnModel().getColumn(0).getMaxWidth());
+		} else if (hiddenColumnIndex == 0) {
+			if (tableErrorList.getColumnModel().getColumn(0).getMaxWidth() > 0) {
+				tableErrorList.getColumnModel().getColumn(1).setMinWidth(tableErrorList.getColumnModel().getColumn(0).getMinWidth());
+				tableErrorList.getColumnModel().getColumn(1).setMaxWidth(tableErrorList.getColumnModel().getColumn(0).getMaxWidth());
 			}
 			tableErrorList.getColumnModel().getColumn(0).setMinWidth(0);
 			tableErrorList.getColumnModel().getColumn(0).setMaxWidth(0);
-		}else{
+		} else {
 			tableErrorList.getColumnModel().getColumn(1).setMinWidth(0);
 			tableErrorList.getColumnModel().getColumn(1).setMaxWidth(0);
 		}
@@ -596,13 +598,13 @@ public class PanelDetails extends TabbedPanel {
 			return;
 		}
 		for (Entry<String, QueryFailure> failure : result.getFailures().entrySet()) {
-			model.addRow(new Object[] { failure.getKey(),failure.getValue().getFileName() });
+			model.addRow(new Object[] { failure.getKey(), failure.getValue().getFileName() });
 		}
-		List<RowSorter.SortKey> sortKeys = new ArrayList<>();		 
+		List<RowSorter.SortKey> sortKeys = new ArrayList<>();
 		int columnIndexToSort = 1;
-		sortKeys.add(new RowSorter.SortKey(columnIndexToSort, SortOrder.ASCENDING)); 
+		sortKeys.add(new RowSorter.SortKey(columnIndexToSort, SortOrder.ASCENDING));
 		sorter.setSortKeys(sortKeys);
-		
+
 	}
 
 	/**
@@ -611,9 +613,9 @@ public class PanelDetails extends TabbedPanel {
 	public void fillCompBox() {
 		comboBoxName.removeAllItems();
 		int counter = 0;
-		if (results.getResults() != null){
-		    List<String> scenarios = new ArrayList<String>(results.getResults().keySet());
-		    Collections.sort(scenarios);
+		if (results.getResults() != null) {
+			List<String> scenarios = new ArrayList<String>(results.getResults().keySet());
+			Collections.sort(scenarios);
 			for (String s : scenarios) {
 				comboBoxName.insertItemAt(s, counter);
 				counter++;
@@ -634,7 +636,7 @@ public class PanelDetails extends TabbedPanel {
 		results.setCurrentTest(comboBoxName.getItemAt(index));
 		comboBoxName.setSelectedIndex(index);
 	}
-	
+
 	/**
 	 * Selects test in the comboBox
 	 * 
@@ -643,14 +645,27 @@ public class PanelDetails extends TabbedPanel {
 	public int getIndexOfItem(String name) {
 
 		String item;
-		int i=0;
-		while((item=comboBoxName.getItemAt(i))!=null){
-			if(item.equals(name)){
-			return i;
+		int i = 0;
+		while ((item = comboBoxName.getItemAt(i)) != null) {
+			if (item.equals(name)) {
+				return i;
 			}
 			i++;
 		}
 		return -1;
-
 	}
+	
+    private void updateFilter() {
+        RowFilter<TableModel, Object> rf = null;
+        //If current expression doesn't parse, don't update.
+        try {
+        	if(showingQueries==false)
+              rf = RowFilter.regexFilter(errorfilter.getText(), 1);
+        	else
+              rf = RowFilter.regexFilter(errorfilter.getText(), 0);
+        } catch (java.util.regex.PatternSyntaxException e) {
+            return;
+        }
+        sorter.setRowFilter(rf);
+    }
 }
