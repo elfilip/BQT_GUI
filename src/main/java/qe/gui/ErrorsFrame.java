@@ -46,7 +46,7 @@ public class ErrorsFrame {
 
 		textArea = new JTextArea();
 		scrollPane.setViewportView(textArea);
-
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		return this;
 	}
 
