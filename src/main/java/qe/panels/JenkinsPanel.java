@@ -1068,6 +1068,7 @@ public class JenkinsPanel extends JPanel {
     private class ShowLogWorker extends SwingWorker<JTextArea, Void> {
         
         private final String logFile;
+        private final String findActionKey = "strtSearch";
         
         private ShowLogWorker(String logFile) {
             super();
@@ -1082,9 +1083,8 @@ public class JenkinsPanel extends JPanel {
                 final JTextArea area = new JTextArea();
                 area.read(br, logFile);
                 area.setEditable(false);
-                String key = "find";
-                area.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), key);
-                area.getActionMap().put(key, new FindInAreaAction(area));
+                area.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), findActionKey);
+                area.getActionMap().put(findActionKey, new FindInAreaAction(area));
                 return area;
             }
         }
@@ -1137,12 +1137,13 @@ public class JenkinsPanel extends JPanel {
     private class FindInAreaAction extends AbstractAction{
 
         private final JTextArea area;
-        private final String actionString = "findNext";
+        private final String nextResultActionString = "findNext";
         private String pattern;
         
         private FindInAreaAction(JTextArea area) {
             this.area = area;
-            area.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), actionString);
+            area.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), nextResultActionString);
+            area.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0), nextResultActionString);
         }
 
         @Override
@@ -1155,10 +1156,10 @@ public class JenkinsPanel extends JPanel {
             }
             pattern = newPattern;
             LOG.debug("Searching for pattern: {}", pattern);
-            area.getActionMap().put(actionString, null);
+            area.getActionMap().put(nextResultActionString, null);
             FindNextMatchAction action = new FindNextMatchAction(area,
                     Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(area.getText()));
-            area.getActionMap().put(actionString, action);
+            area.getActionMap().put(nextResultActionString, action);
             action.actionPerformed(null);
             
         }

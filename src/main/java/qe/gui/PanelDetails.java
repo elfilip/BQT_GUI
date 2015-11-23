@@ -33,6 +33,8 @@ import javax.swing.MutableComboBoxModel;
 import javax.swing.RowSorter;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SortOrder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
@@ -184,11 +186,11 @@ public class PanelDetails extends TabbedPanel {
 		        AbstractButton radioButton = (AbstractButton) actionEvent.getSource();
 		        if(radioButton.getActionCommand().equals("query")){
 		        	showCompareErrors(results.getCurrentTest(),1);
-					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
+					((DefaultRowSorter)tableErrorList.getRowSorter()).sort();
 
 		        }else if(radioButton.getActionCommand().equals("filename")){
 		        	showCompareErrors(results.getCurrentTest(),0);
-					 ((DefaultRowSorter)tableErrorList.getRowSorter()).sort();;
+					((DefaultRowSorter)tableErrorList.getRowSorter()).sort();
 		        }
 		
 		      }
@@ -465,6 +467,7 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaActualRes = new XMLTextPane();
 		paneActualResult.setViewportView(textAreaActualRes);
+		paneActualResult.setBorder(new TitledBorder(new EmptyBorder(0, 0, 0, 0), "Actual result"));
 
 		// Text area for expected results
 		final JScrollPane paneExpectedResult = new JScrollPane();
@@ -481,6 +484,7 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaExpectedRest = new XMLTextPane();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
+		paneExpectedResult.setBorder(new TitledBorder(new EmptyBorder(0, 0, 0, 0), "Expected esult"));
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
 
