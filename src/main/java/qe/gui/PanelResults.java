@@ -61,7 +61,25 @@ public class PanelResults extends TabbedPanel {
 		getParent();
 		// Table with results
 		String columnNames[] = { "Name", "Success", "Failed", "Total", "Skipped" };
-		DefaultTableModel model = new DefaultTableModel();
+		@SuppressWarnings("serial")
+		DefaultTableModel model = new DefaultTableModel(){
+			 @Override
+	            public Class<?> getColumnClass(int column) {
+	                switch (column) {
+	                    case 1:
+	                        return Integer.class;
+	                    case 2:
+	                        return Integer.class;
+	                    case 3:
+	                        return Integer.class;
+	                    case 4:
+	                        return Integer.class;
+	                    case 0:
+	                    default:
+	                        return String.class;
+	                }
+	            }
+		};
 		model.setColumnIdentifiers(columnNames);
 		panel.setLayout(new GridBagLayout());
 
@@ -91,7 +109,9 @@ public class PanelResults extends TabbedPanel {
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane, c2);
 		table = new JTable(model);
-		table.setDefaultRenderer(Object.class, new Renderer());
+		table.setAutoCreateRowSorter(true);
+		table.setDefaultRenderer(String.class, new Renderer());
+		table.setDefaultRenderer(Integer.class, new Renderer());
 		table.addMouseListener(new MouseAdapter() { // Listens for clicks on the
 													// table. Switches to details
 													// panel
@@ -100,8 +120,7 @@ public class PanelResults extends TabbedPanel {
 				JTable target = (JTable) e.getSource();
 				int row = target.getSelectedRow();
 				getParentPane().setSelectedIndex(1);
-				table.getModel().getValueAt(row, 0);
-				panel_details.setIndexInCombobox(row);
+				panel_details.setIndexInCombobox(panel_details.getIndexOfItem((String)table.getValueAt(row, 0)));
 				logger.debug("Swithing to panel details and selecting " + table.getModel().getValueAt(row, 0));
 			}
 		});
@@ -155,10 +174,10 @@ public class PanelResults extends TabbedPanel {
 		    TestResult res = map.get(scen);
 		    Object[] row = new Object[columns];
             row[0] = scen;
-            row[1] = res.getNumberOfSuccessfulTests();
-            row[2] = res.getNumberOfErrorTests();
-            row[3] = res.getNumberOfTotalTests();
-            row[4] = res.getNumberOfSkippedTests();
+            row[1] = new Integer(res.getNumberOfSuccessfulTests());
+            row[2] = new Integer(res.getNumberOfErrorTests());
+            row[3] = new Integer(res.getNumberOfTotalTests());
+            row[4] = new Integer(res.getNumberOfSkippedTests());
             boolean hasFailed = res.getNumberOfErrorTests() != 0;
             boolean hasSkipped = res.getNumberOfSkippedTests() != 0;
             if(hasFailed || hasSkipped){
@@ -206,6 +225,7 @@ public class PanelResults extends TabbedPanel {
             }
             text.setText(String.valueOf(value));
             text.setOpaque(opaque);
+            System.out.println("Color to[" + value + "]: " + color);
             text.setBackground(color);
             return text;
         }
@@ -218,6 +238,6 @@ public class PanelResults extends TabbedPanel {
                 labels.put(row + " " + column, text);
             }
             return text;
-        }
+        }    
     }
 }
