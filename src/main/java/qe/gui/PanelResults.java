@@ -225,7 +225,6 @@ public class PanelResults extends TabbedPanel {
             }
             text.setText(String.valueOf(value));
             text.setOpaque(opaque);
-            System.out.println("Color to[" + value + "]: " + color);
             text.setBackground(color);
             return text;
         }
