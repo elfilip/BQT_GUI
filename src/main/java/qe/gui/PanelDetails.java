@@ -1,5 +1,6 @@
 package qe.gui;
 
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -485,7 +486,7 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaExpectedRest = new XMLTextPane();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
-		paneExpectedResult.setBorder(new TitledBorder(new EtchedBorder(), "Expected esult"));
+		paneExpectedResult.setBorder(new TitledBorder(new EtchedBorder(), "Expected result"));
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
 
@@ -514,6 +515,35 @@ public class PanelDetails extends TabbedPanel {
 		gbc_showAsTable.gridy = 2;
 		gbc_showAsTable.anchor = GridBagConstraints.EAST;
 		panel.add(showAsTable, gbc_showAsTable);
+		
+		final JButton openInEditor = new JButton("Open in editor");
+		openInEditor.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					File pathtoExpectedResults = FileLoader.getPathToExpectedResults(results.getCurrentTest());
+					File expectedResult = FileLoader.findTestInExepectedResults(
+							results.getResults().get(results.getCurrentTest()).getFailures()
+									.get(tableErrorList.getValueAt(tableErrorList.getSelectedRow(), 0)).getFileName(),
+							results.getCurrentTest(), pathtoExpectedResults);
+					if (expectedResult == null) {
+						throw new ResultParsingException("Expected result file can't be found");
+					}
+					Desktop.getDesktop().open(expectedResult);
+				} catch (Exception e1) {
+					Utils.showMessageDialog(rootFrame, Level.ERROR,
+							"Error opening expected results:\n" + e1.getMessage(), e1);
+					return;
+				}
+			}
+		});
+		GridBagConstraints gbc_openInEditor = new GridBagConstraints();
+		gbc_openInEditor.insets = new Insets(0, 0, 5, 5);
+		gbc_openInEditor.gridx = 5;
+		gbc_openInEditor.gridy = 2;
+		gbc_openInEditor.anchor = GridBagConstraints.WEST;
+		panel.add(openInEditor, gbc_openInEditor);
 	}
 
 	private void setVerticalAndHorizontalUnitIncrement(int vert, int hor, JScrollPane... panes) {

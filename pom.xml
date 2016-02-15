@@ -7,7 +7,7 @@
     <name>Gui Application</name>
     <properties>
         <bqt.version>2.2.1</bqt.version>
-        <client.version>8.7.1.6_2-redhat-6</client.version>
+        <client.version>8.12.3.redhat-1</client.version>
     </properties>
     <dependencies>
         <dependency>
@@ -89,8 +89,6 @@
                         </manifest>
                         <manifestEntries>
                             <mode>development</mode>
-                            <url>${pom.url}</url>
-                            <Class-Path>lib/${client.jar.name}</Class-Path>
                         </manifestEntries>
                     </archive>
                 </configuration>
