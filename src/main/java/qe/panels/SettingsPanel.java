@@ -262,7 +262,7 @@ public class SettingsPanel extends JPanel{
 	}
 	
 	private void initArtifactsVersion(){
-	    teiidV6Artifacts = getRadioButton(TEIID_TEST_ARTIFACTS_V6, true, saveTeiidV6ArtifactsSelectedAction);
+	    teiidV6Artifacts = getRadioButton(TEIID_TEST_ARTIFACTS_V6, false, saveTeiidV6ArtifactsSelectedAction);
 	    teiidArtifacts = getRadioButton(TEIID_TEST_ARTIFACTS, false,  saveTeiidArtifactsSelectedAction);
 	    
 	    ButtonGroup bg = new ButtonGroup();

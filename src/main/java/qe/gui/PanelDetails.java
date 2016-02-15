@@ -32,7 +32,7 @@ import javax.swing.RowFilter;
 import javax.swing.RowSorter;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SortOrder;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -134,6 +134,7 @@ public class PanelDetails extends TabbedPanel {
 							// QueryFailure f = results.getResults().get(results.getCurrentTest()).getFailures().get(tableErrorList.getValueAt(row, 0));
 							QueryFailure f = null;
 							try {
+							    // TODO swing worker? dialog?
 								f = results.loadFailureDetails((String) tableErrorList.getValueAt(row, 0));
 							} catch (ResultParsingException e) {
 								Utils.showMessageDialog(rootFrame, Level.ERROR, e.getMessage(), e);
@@ -468,7 +469,7 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaActualRes = new XMLTextPane();
 		paneActualResult.setViewportView(textAreaActualRes);
-		paneActualResult.setBorder(new TitledBorder(new EmptyBorder(0, 0, 0, 0), "Actual result"));
+		paneActualResult.setBorder(new TitledBorder(new EtchedBorder(), "Actual result"));
 
 		// Text area for expected results
 		final JScrollPane paneExpectedResult = new JScrollPane();
@@ -485,7 +486,7 @@ public class PanelDetails extends TabbedPanel {
 
 		textAreaExpectedRest = new XMLTextPane();
 		paneExpectedResult.setViewportView(textAreaExpectedRest);
-		paneExpectedResult.setBorder(new TitledBorder(new EmptyBorder(0, 0, 0, 0), "Expected result"));
+		paneExpectedResult.setBorder(new TitledBorder(new EtchedBorder(), "Expected result"));
 		setVerticalAndHorizontalUnitIncrement(20, 20, paneActualResult, paneExpectedResult);
 		bindScrollPanes(paneActualResult, paneExpectedResult);
 
