@@ -51,6 +51,9 @@ public class TablePanel extends JPanel {
         static final String TYPE = "type";
         static final String EXCEPTION_TYPE = "exceptionType";
         static final String MESSAGE = "message";
+        static final String MESSAGE_CONTAINS = "message-contains";
+        static final String MESSAGE_STARTS_WITH = "message-startswith";
+        static final String MESSAGE_REGEX = "messageRegex";
     }
     
     /**
@@ -128,11 +131,15 @@ public class TablePanel extends JPanel {
                 return;
             }
             if(type == TYPE_TABLE){
+                LOGGER.debug("Creating table.");
                 buildTable(node.get(0));
             } else {
+                LOGGER.debug("Creating table from exception.");
                 buildException(node.get(0));
             }
+            LOGGER.debug("Cells created.");
             Utils.buildTable(this, table);
+            LOGGER.debug("Table created.");
             repaint();
         } catch (Exception ex){
             LOGGER.error("ERROR", ex);
@@ -192,11 +199,24 @@ public class TablePanel extends JPanel {
         LOGGER.trace("Root element: " + rootElement);
         Elements exceptionType = rootElement.getElementsByTag(TagNames.EXCEPTION_TYPE);
         Elements exceptionMessage = rootElement.getElementsByTag(TagNames.MESSAGE);
+        Elements exceptionMessageStartsWith = rootElement.getElementsByTag(TagNames.MESSAGE_STARTS_WITH);
+        Elements exceptionMessageRegex = rootElement.getElementsByTag(TagNames.MESSAGE_REGEX);
+        Elements exceptionMessageContains = rootElement.getElementsByTag(TagNames.MESSAGE_CONTAINS);
+        String message;
         if(exceptionType.isEmpty()){
             throw new ResultParsingException("No element " + TagNames.EXCEPTION_TYPE);
         }
-        if(exceptionMessage.isEmpty()){
-            throw new ResultParsingException("No element " + TagNames.MESSAGE);
+        if(!exceptionMessage.isEmpty()){
+            message = getWholeText(exceptionMessage.get(0));
+        } else if(!exceptionMessageStartsWith.isEmpty()){
+            message = getWholeText(exceptionMessageStartsWith.get(0));
+        } else if(!exceptionMessageRegex.isEmpty()){
+            message = getWholeText(exceptionMessageRegex.get(0));
+        } else if(!exceptionMessageContains.isEmpty()){
+            message = getWholeText(exceptionMessageContains.get(0));
+        } else {
+            throw new ResultParsingException("Need at least one of elements " + TagNames.MESSAGE + ", " + TagNames.MESSAGE_STARTS_WITH
+                    + ", " + TagNames.MESSAGE_REGEX + ", " + TagNames.MESSAGE_CONTAINS);
         }
         rows = 2;
         columns = 2;
@@ -204,7 +224,7 @@ public class TablePanel extends JPanel {
         table[0][0] = new Cell("Exception type");
         table[0][1] = new Cell(getWholeText(exceptionType.get(0)));
         table[1][0] = new Cell("Exception message");
-        table[1][1] = new Cell(getWholeText(exceptionMessage.get(0)));
+        table[1][1] = new Cell(message);
     }
     
     private String getWholeText(Element e){
