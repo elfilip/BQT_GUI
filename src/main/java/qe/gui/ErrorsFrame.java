@@ -34,7 +34,8 @@ public class ErrorsFrame {
 	 * @return
 	 */
 	public ErrorsFrame initialize() {
-		frame.setBounds(90, 90, 682, 449);
+	    frame.setLocationByPlatform(true);
+	    frame.setSize(900, 449);
 		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		frame.setTitle(title);
 		JPanel panel = new JPanel();
