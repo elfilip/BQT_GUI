@@ -1,11 +1,17 @@
 package qe.gui;
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 
 import qe.entity.result.QueryFailure;
 
@@ -48,6 +54,19 @@ public class ErrorsFrame {
 		textArea = new JTextArea();
 		scrollPane.setViewportView(textArea);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+
+        Action escapeAction = new AbstractAction() {
+            // close the frame when the user presses escape
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose();
+            }
+        };
+        frame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false), "ESCAPE");
+        frame.getRootPane().getActionMap().put("ESCAPE", escapeAction);
+
+
 		return this;
 	}
 
