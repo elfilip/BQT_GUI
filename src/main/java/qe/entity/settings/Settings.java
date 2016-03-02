@@ -58,7 +58,8 @@ public class Settings {
         JENKINS_USERNAME("jenkins.username"),
         JENKINS_VIEW("jenkins.view"),
         JENKINS_JOB("jenkins.job"),
-        JENKINS_DOWNLOAD_DIR("jenkins.download.dir");
+        JENKINS_DOWNLOAD_DIR("jenkins.download.dir"),
+        DECODE_BASE64("decode_base64");
         
         private final String key;
         
@@ -425,6 +426,23 @@ public class Settings {
      */
     public void setJenkinsDownloadDir(String jenkinsDownloadDir) {
         addToProperties(Keys.JENKINS_DOWNLOAD_DIR, jenkinsDownloadDir);
+    }
+    /**
+     * Returns whether to decode base64 encoded results.
+     * 
+     * @return
+     */
+    public String getDecodeBase64() {
+        return getFromProperties(Keys.DECODE_BASE64);
+    }
+
+    /**
+     * Sets whether to decode base64 encoded results.
+     * 
+     * @param jenkinsDownloadDir
+     */
+    public void setDecodeBase64(String decode) {
+        addToProperties(Keys.DECODE_BASE64, decode);
     }
 
     /**

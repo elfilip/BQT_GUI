@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.swing.JPanel;
 
+import org.apache.commons.codec.binary.Base64;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -13,6 +14,7 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import qe.entity.settings.Settings;
 import qe.exception.ResultParsingException;
 import qe.utils.Utils;
 
@@ -54,6 +56,7 @@ public class TablePanel extends JPanel {
         static final String MESSAGE_CONTAINS = "message-contains";
         static final String MESSAGE_STARTS_WITH = "message-startswith";
         static final String MESSAGE_REGEX = "messageRegex";
+        static final String ATTRIBUTE_IS_BASE64 = "base64";
     }
     
     /**
@@ -77,12 +80,17 @@ public class TablePanel extends JPanel {
     private int rows;
     private int columns;
     
+    private boolean decodeBase64;
+    
     /**
      * This method parses an XML document {@code xml} and creates table.
      * 
      * @param xml XML document as string
      */
     public void parseXML(String xml){
+        
+        decodeBase64 = Boolean.valueOf(Settings.getInstance().getDecodeBase64());
+        
         if(LOGGER.isTraceEnabled()){
             LOGGER.trace("Parsing xml: {}", xml);
         }
@@ -249,7 +257,11 @@ public class TablePanel extends JPanel {
         for(TextNode tn : texts){
             b.append(tn.getWholeText());
         }
-        return b.toString();
+        String result = b.toString();
+        if(decodeBase64 && "true".equals(e.attributes().get(TagNames.ATTRIBUTE_IS_BASE64))) {
+            result = result + " [" + new String(Base64.decodeBase64(result)) + ']';
+        }
+        return result;
     }
     
     /**

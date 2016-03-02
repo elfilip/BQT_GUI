@@ -86,6 +86,7 @@ public class SettingsPanel extends JPanel{
 	private JTextField artifactsDir;
 	private JLabel artifactsDirLabel;
 	private JButton artifactsDirBrowseButton;
+	private JCheckBox decodeBase64;
 	
 	private JTextField include;
 	private JLabel includeLabel;
@@ -108,6 +109,7 @@ public class SettingsPanel extends JPanel{
 		initRepositorySettings();
 		initArtifactsVersion();
 		initStandardArtifactsPath();
+        initDecodeBase64();
 		initDefaultValues();
 		
 		GroupLayout gl = new GroupLayout(this);
@@ -169,7 +171,8 @@ public class SettingsPanel extends JPanel{
 				.addComponent(include)
 				.addComponent(excludeLabel)
 				.addComponent(exclude))
-			.addComponent(pre1Supported));
+			.addComponent(pre1Supported)
+			.addComponent(decodeBase64));
 		
 		int fieldHeight = 25;
 		int groupsGap = 25;
@@ -224,7 +227,8 @@ public class SettingsPanel extends JPanel{
 				.addComponent(excludeLabel)
 				.addComponent(exclude))
 			.addGap(groupsGap)
-			.addComponent(pre1Supported));
+			.addComponent(pre1Supported)
+			.addComponent(decodeBase64));
 		
 		gl.linkSize(host, port, userName, password);
 		gl.linkSize(SwingConstants.VERTICAL, scenarios, outputDir, config, artifactsDir, include, exclude, summaryTotalsDir, repositorySettings);
@@ -259,6 +263,7 @@ public class SettingsPanel extends JPanel{
         artifactsDir.setEnabled(enabled);
         artifactsDirBrowseButton.setEnabled(enabled);
         artifactsDirLabel.setEnabled(enabled);
+        decodeBase64.setSelected(Boolean.parseBoolean(settings.getDecodeBase64()));
 	}
 	
 	private void initArtifactsVersion(){
@@ -345,6 +350,18 @@ public class SettingsPanel extends JPanel{
         });
 	}
 	
+	private void initDecodeBase64(){
+        decodeBase64 = new JCheckBox("Decode base64 encoded results.", true);
+        Utils.setToolTipText(decodeBase64, "If enabled, binary results will be decoded. Only use when the results are printable strings.");
+        decodeBase64.addActionListener(new ActionListener() {
+            
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Settings.getInstance().setDecodeBase64(Boolean.toString(decodeBase64.isSelected()));
+                LOGGER.info("Decode base64 set to " + decodeBase64.isSelected());
+            }
+        });
+    }
 	/**
 	 * Initializes bqt-config related part of this panel. 
 	 */
