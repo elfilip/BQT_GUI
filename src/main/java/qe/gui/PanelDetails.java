@@ -216,7 +216,6 @@ public class PanelDetails extends TabbedPanel {
 		gbc_errorfilter.anchor = GridBagConstraints.SOUTHWEST;
 		gbc_errorfilter.fill=GridBagConstraints.HORIZONTAL;
 		panel.add(errorfilter, gbc_errorfilter);
-//>>>>>>> b9f9a3169586cdec0212ff5a171daa13f485d835
 		comboBoxName = new JComboBox<String>(new Aaa());
 		comboBoxName.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent arg0) {

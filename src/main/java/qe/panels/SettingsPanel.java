@@ -317,10 +317,10 @@ public class SettingsPanel extends JPanel{
 	private void initPre1Support(){
 		pre1Supported = new JCheckBox("Support old names");
 		pre1Supported.setSelected(true);
-		pre1Supported.addChangeListener(new ChangeListener() {
+		pre1Supported.addActionListener(new ActionListener() {
 			
 			@Override
-			public void stateChanged(ChangeEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				savePre1SupportAction.save();
 			}
 		});

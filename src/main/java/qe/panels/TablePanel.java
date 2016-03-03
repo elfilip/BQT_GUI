@@ -148,7 +148,7 @@ public class TablePanel extends JPanel {
             LOGGER.debug("Cells created.");
             Utils.buildTable(this, table);
             LOGGER.debug("Table created.");
-            repaint();
+            invalidate();
         } catch (Exception ex){
             LOGGER.error("ERROR", ex);
             type = -1;
