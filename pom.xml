@@ -29,6 +29,7 @@
             <groupId>org.jboss.teiid</groupId>
             <artifactId>teiid-client</artifactId>
             <version>${client.version}</version>
+            <classifier>jdbc</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
