@@ -54,6 +54,8 @@ public class StatusPanel extends JPanel {
     public void setStatus(String statusText, Color bg) {
         status.setText(statusText);
         status.setForeground(bg);
+        status.invalidate();
+        invalidate();
     }
     
     /**

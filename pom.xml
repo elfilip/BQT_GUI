@@ -6,7 +6,7 @@
     <version>0.6-SNAPSHOT</version>
     <name>Gui Application</name>
     <properties>
-        <bqt.version>2.2.2-SNAPSHOT</bqt.version>
+        <bqt.version>2.2.2</bqt.version>
         <client.version>8.12.5.redhat-2</client.version>
     </properties>
     <dependencies>
