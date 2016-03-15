@@ -111,7 +111,6 @@ public class Utils {
         // horizontal group
         int rows = comps.length;
         int columns = comps[0].length;
-        logger.debug("Creating horizontal group for table.");
         Group hor = gl.createParallelGroup(Alignment.LEADING, false);
         for(int r = 0; r < rows; r++){
             Group horSeq = gl.createSequentialGroup();
@@ -122,7 +121,6 @@ public class Utils {
         }
         gl.setHorizontalGroup(hor);
         // vertical group
-        logger.debug("Creating vertical group for table.");
         Group ver = gl.createParallelGroup(Alignment.LEADING, false);
         for(int c = 0; c < columns; c++){
             Group verSeq = gl.createSequentialGroup();
@@ -132,7 +130,6 @@ public class Utils {
             ver.addGroup(verSeq);
         }
         gl.setVerticalGroup(ver);
-        logger.debug("Linking size of the components.");
         linkSizeOfComponents(gl, comps);
         tablePanel.setLayout(gl);
     }

@@ -122,7 +122,7 @@ public class PanelDetails extends TabbedPanel {
 					@Override
 					public void valueChanged(ListSelectionEvent event) {
 						if (event.getValueIsAdjusting()) {
-							return; // wait for end of multiple events
+						    return; // wait for end of multiple events
 						}
 						int row = tableErrorList.getSelectedRow();
 						if (row > -1) {

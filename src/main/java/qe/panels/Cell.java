@@ -38,11 +38,6 @@ public class Cell extends JTextField {
     private boolean isHighlighted;
     
     /**
-     * Binded cell.
-     */
-    private Cell bindedCell;
-    
-    /**
      * Creates new cell.
      * 
      * @param text text for this cell
@@ -73,23 +68,14 @@ public class Cell extends JTextField {
         });
     }
     
-    /**
-     * Sets binded cell for this cell.
-     * 
-     * @param c binded cell
-     */
-    public void setBindedCell(Cell c){
-        bindedCell = c;
+    public boolean isHighlighted() {
+        return isHighlighted;
     }
     
     /**
      * Highlights this cell and binded cell (if not {@code null}).
      */
     public void highlight(){
-        innerHighlight(true);
-    }
-    
-    private void innerHighlight(boolean highlightBindedCell){
         if(isHighlighted){
             setBackground(BASIC_BACKGROUND);
             setText(text);
@@ -98,9 +84,6 @@ public class Cell extends JTextField {
             setBackground(HIGHLIGHTED_BACKGROUND);
             setText("'" + text + "'");
             isHighlighted = true;
-        }
-        if(highlightBindedCell && bindedCell != null){
-            bindedCell.innerHighlight(false);
         }
     }
 }

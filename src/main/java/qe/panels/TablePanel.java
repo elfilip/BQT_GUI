@@ -1,8 +1,14 @@
 package qe.panels;
 
+import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.LinkedList;
 import java.util.List;
 
-import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import org.apache.commons.codec.binary.Base64;
 import org.jsoup.Jsoup;
@@ -16,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import qe.entity.settings.Settings;
 import qe.exception.ResultParsingException;
-import qe.utils.Utils;
 
 /**
  * Panel for basic table view.
@@ -24,13 +29,13 @@ import qe.utils.Utils;
  * @author jdurani
  *
  */
-public class TablePanel extends JPanel {
+public class TablePanel extends JTable {
     /**
      * 
      */
     private static final long serialVersionUID = -6932438524346906661L;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TablePanel.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TablePanel.class);
     
     /**
      * XML elements in error file.
@@ -73,14 +78,49 @@ public class TablePanel extends JPanel {
      */
     private int type = -1;
     
-    /**
-     * Table.
-     */
-    private Cell[][] table;
+    private boolean[][] selected;
+    private TablePanel binded;
+    private InnerTableModel model;
     private int rows;
     private int columns;
     
     private boolean decodeBase64;
+    
+    public TablePanel() {
+        super();
+        setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        setRowHeight(10 + new Cell("").getFont().getSize());
+        model = new InnerTableModel();
+        setModel(model);
+        setDefaultRenderer(Cell.class, new TableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Cell c = (Cell) value;
+                if(selected != null){
+                    if((selected[column][row] && !c.isHighlighted())
+                            || (!selected[column][row] && c.isHighlighted())){
+                        c.highlight();
+                    }
+                }
+                return c;
+            }
+        });
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(selected != null){
+                    int r = getSelectedRow();
+                    int c = getSelectedColumn();
+                    selected[c][r] = !selected[c][r];
+                    model.fireTableCellUpdated(r, c);
+                    if(binded != null){
+                        binded.model.fireTableCellUpdated(r, c);
+                    }
+                }
+            }
+        });
+    }
     
     /**
      * This method parses an XML document {@code xml} and creates table.
@@ -91,18 +131,14 @@ public class TablePanel extends JPanel {
         
         decodeBase64 = Boolean.valueOf(Settings.getInstance().getDecodeBase64());
         
-        if(LOGGER.isTraceEnabled()){
-            LOGGER.trace("Parsing xml: {}", xml);
+        if(LOG.isTraceEnabled()){
+            LOG.trace("Parsing xml: {}", xml);
         }
-        if(xml == null || xml.isEmpty()){
-            clearTable();
-            return;
-        }
-        this.removeAll();
+        model.clear();
         try{
             Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
-            if(LOGGER.isTraceEnabled()){
-                LOGGER.trace("Parsed document: {}", doc);
+            if(LOG.isTraceEnabled()){
+                LOG.trace("Parsed document: {}", doc);
             }
             Elements node = doc.getElementsByTag(TagNames.ACTUAL_QUERY_RESULTS);
             boolean isSet = false;
@@ -132,25 +168,32 @@ public class TablePanel extends JPanel {
                 }
             }
             if(!isSet){
-                LOGGER.warn("The document should contain one of {}, {}, {}, {}.", 
+                LOG.warn("The document should contain one of {}, {}, {}, {}.", 
                         TagNames.ACTUAL_EXCEPTION, TagNames.ACTUAL_QUERY_RESULTS,
                         TagNames.EXPECTED_EXCEPTION, TagNames.EXPECTED_QUERY_RESULTS);
                 clearTable();
                 return;
             }
             if(type == TYPE_TABLE){
-                LOGGER.debug("Creating table.");
+                LOG.debug("Creating table.");
                 buildTable(node.get(0));
             } else {
-                LOGGER.debug("Creating table from exception.");
+                LOG.debug("Creating table from exception.");
                 buildException(node.get(0));
             }
-            LOGGER.debug("Cells created.");
-            Utils.buildTable(this, table);
-            LOGGER.debug("Table created.");
-            invalidate();
+            initSelected();
+            LOG.debug("Table created.");
+            model.fireTableStructureChanged();
+            if(type == TYPE_TABLE){
+                for(int i = 0; i < columns; i++){
+                    getColumnModel().getColumn(i).setMinWidth(180);
+                }
+            } else {
+                getColumnModel().getColumn(0).setMinWidth(200);
+                getColumnModel().getColumn(1).setMinWidth(800);
+            }
         } catch (Exception ex){
-            LOGGER.error("ERROR", ex);
+            LOG.error("ERROR", ex);
             type = -1;
             clearTable();
         }
@@ -172,8 +215,8 @@ public class TablePanel extends JPanel {
         String rowsC = tableElement.attr(TagNames.ROW_COUNT);
         columns = Integer.parseInt(colsC) + 1;
         rows = Integer.parseInt(rowsC) + 1;
-        table = new Cell[rows][columns];
-        table[0][0] = new Cell("Row");
+        String[] header = new String[columns];
+        header[0] = "Row";
         Elements dataElements = rootElement.select(TagNames.SELECT + " " + TagNames.DATA_ELEMENT);
         if(dataElements.isEmpty()){
             throw new ResultParsingException("No element " + TagNames.DATA_ELEMENT + ".");
@@ -184,17 +227,20 @@ public class TablePanel extends JPanel {
                     .append(" [")
                     .append(dataElement.attr(TagNames.TYPE))
                     .append("]");
-            table[0][++idx] = new Cell(b.toString());
+            header[++idx] = b.toString();
         }
+        model.setHeader(header);
         // fill rows
         Elements tableRowElements= rootElement.getElementsByTag(TagNames.TABLE_ROW);
         int rowIdx = 0;
         for(Element tableRow : tableRowElements){
-            table[++rowIdx][0] = new Cell(Integer.toString(rowIdx));
+            Cell[] datas = new Cell[columns];
+            datas[0] = new Cell(Integer.toString(++rowIdx));
             int cellIdx = 1;
             for(Element tableCell : tableRow.getElementsByTag(TagNames.TABLE_CELL)){
-                table[rowIdx][cellIdx++] = new Cell(getWholeText(tableCell));
+                datas[cellIdx++] = new Cell(getWholeText(tableCell));
             }
+            model.addData(datas);
         }
     }
     
@@ -204,35 +250,41 @@ public class TablePanel extends JPanel {
      * @throws ResultParsingException if the node {@code rootElement} does not have expected form
      */
     private void buildException(Element rootElement) throws ResultParsingException{
-        LOGGER.trace("Root element: " + rootElement);
+        LOG.trace("Root element: " + rootElement);
         Elements exceptionType = rootElement.getElementsByTag(TagNames.EXCEPTION_TYPE);
         Elements exceptionMessage = rootElement.getElementsByTag(TagNames.MESSAGE);
         Elements exceptionMessageStartsWith = rootElement.getElementsByTag(TagNames.MESSAGE_STARTS_WITH);
         Elements exceptionMessageRegex = rootElement.getElementsByTag(TagNames.MESSAGE_REGEX);
         Elements exceptionMessageContains = rootElement.getElementsByTag(TagNames.MESSAGE_CONTAINS);
+        String messageType;
         String message;
         if(exceptionType.isEmpty()){
             throw new ResultParsingException("No element " + TagNames.EXCEPTION_TYPE);
         }
         if(!exceptionMessage.isEmpty()){
             message = getWholeText(exceptionMessage.get(0));
+            messageType = "Exception message [plain]";
         } else if(!exceptionMessageStartsWith.isEmpty()){
             message = getWholeText(exceptionMessageStartsWith.get(0));
+            messageType = "Exception message [starts-with]";
         } else if(!exceptionMessageRegex.isEmpty()){
             message = getWholeText(exceptionMessageRegex.get(0));
+            messageType = "Exception message [regex]";
         } else if(!exceptionMessageContains.isEmpty()){
             message = getWholeText(exceptionMessageContains.get(0));
+            messageType = "Exception message [contains]";
         } else {
             throw new ResultParsingException("Need at least one of elements " + TagNames.MESSAGE + ", " + TagNames.MESSAGE_STARTS_WITH
                     + ", " + TagNames.MESSAGE_REGEX + ", " + TagNames.MESSAGE_CONTAINS);
         }
         rows = 2;
         columns = 2;
-        table = new Cell[rows][columns];
-        table[0][0] = new Cell("Exception type");
-        table[0][1] = new Cell(getWholeText(exceptionType.get(0)));
-        table[1][0] = new Cell("Exception message");
-        table[1][1] = new Cell(message);
+        model.setHeader(new String[]{"Exception type", messageType});
+        model.addData(new Cell[]{new Cell(getWholeText(exceptionType.get(0))), new Cell(message)});
+    }
+    
+    private void initSelected(){
+        selected = new boolean[columns][rows];
     }
     
     private String getWholeText(Element e){
@@ -273,30 +325,22 @@ public class TablePanel extends JPanel {
      * @see #unbindCells()
      */
     public void bindCells(TablePanel table){
-        if(this.table == null){
+        if(table == null || table.type != this.type){
             return; // nothing to do
         }
-        unbindCells();
-        if(table == null || table.type != this.type){
-            return;
-        }
-        for(int r = 0; r < this.rows; r++){
-            for(int c = 0; c < this.columns; c++){
-                Cell cell1 = this.table[r][c];
-                Cell cell2 = getCell(table, r, c);
-                if(cell1 != null){ cell1.setBindedCell(cell2); }
-                if(cell2 != null){ cell2.setBindedCell(cell1); }
-            }
-        }
+        table.binded = this;
+        this.binded = table;
+        selected = new boolean[Math.max(this.columns, table.columns)][Math.max(this.rows, table.rows)];
+        table.selected = this.selected;
     }
     
     /**
      * Clears this table.
      */
     public void clearTable(){
-        unbindCells();
-        removeAll();
-        repaint();
+        rows = 0;
+        columns = 0;
+        model.clear();
     }
     
     /**
@@ -305,28 +349,57 @@ public class TablePanel extends JPanel {
      * @see #bindCells()
      */
     public void unbindCells(){
-        if(this.table == null){
-            return; // nothing to do
+        if(this.binded != null){
+            binded.binded = null;
+            binded.initSelected();
         }
-        for(Cell[] r : table){
-            for(Cell c : r){
-                c.setBindedCell(null);
-            }
-        }
+        this.binded = null;
+        initSelected();
     }
+    
+    @SuppressWarnings("serial")
+    private static class InnerTableModel extends AbstractTableModel{
+
+        private final List<Cell[]> data = new LinkedList<Cell[]>();
+        private String[] headers;
         
-    /**
-     * @param table table
-     * @param row row index
-     * @param col column index
-     * @return cell instance at position {@code [row][col]} in table {@code table}
-     *      or null if {@code row} or {@code col} is out of range 
-     */
-    private Cell getCell(TablePanel table, int row, int col){
-        if(row < 0 || row >= table.rows || col < 0 || col >= table.columns){
-            return null;
+        private void setHeader(String[] headers) {
+            this.headers = headers;
         }
-        return table.table[row][col];
+        
+        private void addData(Cell[] row){
+            data.add(row);
+        }
+        
+        private void clear(){
+            data.clear();
+        }
+        
+        @Override
+        public int getRowCount() {
+            return data.size();
+        }
+        
+        @Override
+        public String getColumnName(int column) {
+            return headers == null ? null : headers[column];
+        }
+        
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            return Cell.class;
+        }
+        
+        @Override
+        public int getColumnCount() {
+            return headers == null ? 0 : headers.length;
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            return data.get(rowIndex)[columnIndex];
+        }
+        
     }
 }
 
