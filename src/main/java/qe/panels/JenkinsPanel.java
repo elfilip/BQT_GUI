@@ -59,6 +59,7 @@ import qe.entity.result.RefreshResults;
 import qe.entity.settings.Settings;
 import qe.gui.DownloadManager;
 import qe.jenkins.JenkinsActiveConfiguration;
+import qe.jenkins.JenkinsActiveConfiguration.JenkinsStatus;
 import qe.jenkins.JenkinsBuild;
 import qe.jenkins.JenkinsJob;
 import qe.jenkins.JenkinsManager;
@@ -790,15 +791,19 @@ public class JenkinsPanel extends JPanel {
             
             File basePath = getPathToArtifactsOfSelectedBuild();
             for(JenkinsActiveConfiguration jac : actualBuild.getActiveConfigurations()){
-                int id = getNextDownloadID();
-                File downloadDirFile = FileUtils.getFile(basePath, jac.getxValue(), jac.getyValue());
-                Properties prop = new Properties();
-                prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
-                prop.put(DownloadArtifactsWorker.FILE, id + ".zip");
-                prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
-                prop.put(DownloadArtifactsWorker.FAIL, false);
-                DownloadArtifactsWorker downloadArtifactsWorker = new DownloadArtifactsWorker(prop, id);
-                executeWorker(downloadArtifactsWorker);
+                if(jac.getStatus() == JenkinsStatus.FAILURE
+                        || jac.getStatus() == JenkinsStatus.SUCCESS
+                        || jac.getStatus() == JenkinsStatus.UNSTABLE){
+                    int id = getNextDownloadID();
+                    File downloadDirFile = FileUtils.getFile(basePath, jac.getxValue(), jac.getyValue());
+                    Properties prop = new Properties();
+                    prop.put(DownloadArtifactsWorker.URL, jac.getUrl());
+                    prop.put(DownloadArtifactsWorker.FILE, id + ".zip");
+                    prop.put(DownloadArtifactsWorker.UNZIP_FILE, downloadDirFile.getAbsolutePath());
+                    prop.put(DownloadArtifactsWorker.FAIL, false);
+                    DownloadArtifactsWorker downloadArtifactsWorker = new DownloadArtifactsWorker(prop, id);
+                    executeWorker(downloadArtifactsWorker);
+                }
             }
         }
     }
