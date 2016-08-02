@@ -40,13 +40,10 @@ import qe.utils.Utils;
 public class PanelResults extends TabbedPanel {
 	
     private static final Logger logger = LoggerFactory.getLogger(PanelResults.class);
-    private static final int MAJOR = 2;
-    private static final int MINOR = 1;
-	
+    
 	private JTable table;
 	private ResultGetter results;
 	private PanelDetails panel_details;
-    private int[][] highlight;
 
 
 	public PanelResults(ResultGetter results, PanelDetails panel_details) {
@@ -55,6 +52,7 @@ public class PanelResults extends TabbedPanel {
 		this.panel_details = panel_details;
 	}
 
+    @Override
 	public void initialize() {
 		logger.debug("Initializing Summary result panel");
 		// Panel for summary results
@@ -67,11 +65,8 @@ public class PanelResults extends TabbedPanel {
 	            public Class<?> getColumnClass(int column) {
 	                switch (column) {
 	                    case 1:
-	                        return Integer.class;
 	                    case 2:
-	                        return Integer.class;
 	                    case 3:
-	                        return Integer.class;
 	                    case 4:
 	                        return Integer.class;
 	                    case 0:
@@ -164,12 +159,10 @@ public class PanelResults extends TabbedPanel {
 		}
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
 		model.setRowCount(0);
-		List<String> scenarios = new ArrayList<String>(map.keySet());
+		List<String> scenarios = new ArrayList<>(map.keySet());
 		Collections.sort(scenarios);
 		
 		int columns = 5;
-		highlight = new int[scenarios.size()][columns];
-		int rowI = 0;
 		for(String scen : scenarios){
 		    TestResult res = map.get(scen);
 		    Object[] row = new Object[columns];
@@ -178,20 +171,6 @@ public class PanelResults extends TabbedPanel {
             row[2] = new Integer(res.getNumberOfErrorTests());
             row[3] = new Integer(res.getNumberOfTotalTests());
             row[4] = new Integer(res.getNumberOfSkippedTests());
-            boolean hasFailed = res.getNumberOfErrorTests() != 0;
-            boolean hasSkipped = res.getNumberOfSkippedTests() != 0;
-            if(hasFailed || hasSkipped){
-                for(int i = 0; i < columns; i++){
-                    highlight[rowI][i] = MINOR;
-                }
-                if(hasFailed){
-                    highlight[rowI][2] = MAJOR;
-                }
-                if(hasSkipped){
-                    highlight[rowI][4] = MAJOR;
-                }
-            }
-            rowI++;
             model.addRow(row);
 		}
 	}
@@ -203,29 +182,18 @@ public class PanelResults extends TabbedPanel {
 			throw new RuntimeException("This panel must be in tabbed pane");
 		}
 	}
-	
-	private class Renderer implements TableCellRenderer {
-        
-	    private final Color colorMajorHighlight = new Color(240, 189, 189);
-	    private final Color colorMinorHighlight = new Color(206, 255, 168);
-	    private final Map<String, JLabel> labels = new HashMap<>();
-	    
-	    @Override
+
+    private class Renderer implements TableCellRenderer {
+
+        private final Color colorMajorHighlight = new Color(240, 189, 189);
+        private final Color colorMinorHighlight = new Color(206, 255, 168);
+        private final Map<String, JLabel> labels = new HashMap<>();
+
+        @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus, int row, int column) {
             JLabel text = getTextLabel(table, row, column);
-            Color color = Color.WHITE;
-            boolean opaque = false;
-            if(highlight[row][column] == MAJOR){
-                color = colorMajorHighlight;
-                opaque = true;
-            } else if(highlight[row][column] == MINOR){
-                color = colorMinorHighlight;
-                opaque = true;
-            }
             text.setText(String.valueOf(value));
-            text.setOpaque(opaque);
-            text.setBackground(color);
             return text;
         }
 
@@ -236,7 +204,20 @@ public class PanelResults extends TabbedPanel {
                 text.setFont(table.getFont());
                 labels.put(row + " " + column, text);
             }
+
+            boolean hasFailed = ((Integer)table.getValueAt(row, 2)).intValue() != 0;
+            boolean hasSkipped = ((Integer)table.getValueAt(row, 4)).intValue() != 0;
+            if((hasFailed && column == 2) || (hasSkipped && column == 4)){
+                text.setOpaque(true);
+                text.setBackground(colorMajorHighlight);
+            } else if(hasFailed || hasSkipped){
+                text.setOpaque(true);
+                text.setBackground(colorMinorHighlight);
+            } else {
+                text.setOpaque(false);
+                text.setBackground(Color.WHITE);
+            }
             return text;
-        }    
+        }
     }
 }
